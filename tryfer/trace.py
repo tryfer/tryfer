@@ -10,7 +10,7 @@ from tryfer._thrift.zipkinCore import constants
 
 
 def _uniq_id():
-    return random.randint(0, math.pow(2, 31))
+    return random.randint(0, math.pow(2, 31) - 1)
 
 
 class Trace(object):

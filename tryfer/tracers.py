@@ -11,7 +11,7 @@ from twisted.web.iweb import IBodyProducer
 
 from tryfer.interfaces import ITracer
 from tryfer._thrift.zipkinCore import constants
-from tryfer.formatters import json_formatter
+from tryfer.formatters import json_formatter, base64_thrift_formatter
 
 
 class StringProducer(object):
@@ -45,18 +45,20 @@ class _EndAnnotationTracer(object):
         self._annotations_for_trace = defaultdict(list)
 
     def send_trace(self, trace, annotations):
-        raise NotImplementedError("")
+        raise NotImplementedError("Should be implemented by transport specific subclass")
 
     def record(self, trace, annotation):
-        self._annotations_for_trace[trace.trace_id].append(annotation)
+        trace_key = (trace.trace_id, trace.span_id)
+        self._annotations_for_trace[trace_key].append(annotation)
 
         if annotation.name in self.END_ANNOTATIONS:
-            self.send_trace(trace, self._annotations_for_trace[trace.trace_id])
+            annotations = self._annotations_for_trace[trace_key]
+            print trace_key, [annotation.name for annotation in annotations]
+            self._annotations_for_trace[trace_key] = []
+            self.send_trace(trace, annotations)
 
 
 class RESTKinTracer(_EndAnnotationTracer):
-    implements(ITracer)
-
     def __init__(self, trace_url):
         super(RESTKinTracer, self).__init__()
 
@@ -65,11 +67,19 @@ class RESTKinTracer(_EndAnnotationTracer):
 
     def send_trace(self, trace, annotations):
         json_out = json_formatter(trace, annotations)
-        print '---'
-        print json_out
-        print '---'
         producer = StringProducer(json_out)
         self._agent.request('POST', self._trace_url, Headers({}), producer)
+
+
+class ZipkinTracer(_EndAnnotationTracer):
+    def __init__(self, scribe_client, category=None):
+        super(ZipkinTracer, self).__init__()
+        self._scribe = scribe_client
+        self._category = category or 'zipkin'
+
+    def send_trace(self, trace, annotations):
+        thrift_out = base64_thrift_formatter(trace, annotations)
+        self._scribe.log(self._category, [thrift_out])
 
 
 class DebugTracer(object):

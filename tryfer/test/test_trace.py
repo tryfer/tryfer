@@ -6,7 +6,7 @@ from twisted.trial.unittest import TestCase
 
 from tryfer.trace import Trace, Annotation, Endpoint
 
-MAX_ID = math.pow(2, 31)
+MAX_ID = math.pow(2, 31) - 1
 
 
 class TraceTests(TestCase):
