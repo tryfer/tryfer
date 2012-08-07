@@ -8,6 +8,6 @@ def refresh_plugin_cache():
 setup(name='tryfer',
       version='0.1',
       description='Twisted Zipkin Tracing Library',
-      packages=['tryfer'])
+      packages=['tryfer', 'tryfer._thrift', 'tryfer.tests'])
 
 refresh_plugin_cache()
