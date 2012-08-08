@@ -26,6 +26,8 @@ if __name__ == '__main__':
         a = Annotation.server_recv()
         a.endpoint = backendEndpoint
         t.record(a)
+        t.record(Annotation.string('url', 'http://google.com'))
+        t.record(Annotation.string('snowman', u'\N{SNOWMAN}'))
 
         # t2 = t.child("getServersFromCache")
         # t2.set_endpoint(backendEndpoint)

@@ -53,7 +53,6 @@ class _EndAnnotationTracer(object):
 
         if annotation.name in self.END_ANNOTATIONS:
             annotations = self._annotations_for_trace[trace_key]
-            print trace_key, [annotation.name for annotation in annotations]
             self._annotations_for_trace[trace_key] = []
             self.send_trace(trace, annotations)
 
@@ -109,8 +108,8 @@ _globalTracers = []
 
 
 def set_tracers(tracers):
-    global _globalTracer
-    _globalTracer = tracers
+    global _globalTracers
+    _globalTracers = tracers
 
 
 def push_tracer(tracer):

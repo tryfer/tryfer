@@ -414,7 +414,6 @@ class Span:
       oprot.writeFieldEnd()
     if self.id is not None:
       oprot.writeFieldBegin('id', TType.I64, 4)
-      print repr(self.id)
       oprot.writeI64(self.id)
       oprot.writeFieldEnd()
     if self.parent_id is not None:

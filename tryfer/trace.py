@@ -66,7 +66,7 @@ class Annotation(object):
         if timestamp is None:
             timestamp = math.trunc(time.time() * 1000 * 1000)
 
-        return Annotation(name, timestamp, 'timestamp')
+        return cls(name, timestamp, 'timestamp')
 
     @classmethod
     def client_send(cls, timestamp=None):
@@ -83,3 +83,11 @@ class Annotation(object):
     @classmethod
     def server_recv(cls, timestamp=None):
         return cls.timestamp(constants.SERVER_RECV, timestamp)
+
+    @classmethod
+    def string(cls, name, value):
+        return cls(name, value, 'string')
+
+    @classmethod
+    def bytes(cls, name, value):
+        return cls(name, value, 'bytes')

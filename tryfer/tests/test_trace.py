@@ -34,7 +34,7 @@ class TraceTests(TestCase):
     def test_record_invokes_tracer(self):
         tracer = mock.Mock()
 
-        t = Trace('test_trace', trace_id=1, span_id=1, tracer=tracer)
+        t = Trace('test_trace', trace_id=1, span_id=1, tracers=[tracer])
         annotation = Annotation.client_send(timestamp=0)
         t.record(annotation)
 
@@ -44,7 +44,7 @@ class TraceTests(TestCase):
         tracer = mock.Mock()
         web_endpoint = Endpoint('127.0.0.1', 8080, 'web')
 
-        t = Trace('test_trace', trace_id=1, span_id=1, tracer=tracer)
+        t = Trace('test_trace', trace_id=1, span_id=1, tracers=[tracer])
         t.set_endpoint(web_endpoint)
         annotation = Annotation.client_send(timestamp=1)
         t.record(annotation)
