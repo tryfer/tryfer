@@ -1,4 +1,5 @@
 from distutils.core import setup
+from twisted.python.dist import getPackages
 
 
 def refresh_plugin_cache():
@@ -8,6 +9,6 @@ def refresh_plugin_cache():
 setup(name='tryfer',
       version='0.1',
       description='Twisted Zipkin Tracing Library',
-      packages=['tryfer', 'tryfer._thrift', 'tryfer.tests'])
+      packages=getPackages('tryfer'))
 
 refresh_plugin_cache()
