@@ -79,4 +79,6 @@ def base64_thrift_formatter(trace, annotations):
         annotations=thrift_annotations
     )
 
+    print thrift_trace
+
     return base64_thrift(thrift_trace)

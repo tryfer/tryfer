@@ -5,7 +5,7 @@ import random
 from zope.interface import implements
 
 from tryfer.interfaces import ITrace, IAnnotation, IEndpoint
-from tryfer.tracers import get_tracer
+from tryfer.tracers import get_tracers
 from tryfer._thrift.zipkinCore import constants
 
 
@@ -17,12 +17,12 @@ class Trace(object):
     implements(ITrace)
 
     def __init__(self, name, trace_id=None, span_id=None,
-                 parent_span_id=None, tracer=None):
+                 parent_span_id=None, tracers=None):
         self.name = name
         self.trace_id = trace_id or _uniq_id()
         self.span_id = span_id or _uniq_id()
         self.parent_span_id = parent_span_id
-        self._tracer = tracer or get_tracer()
+        self._tracers = tracers or get_tracers()
         self._endpoint = None
 
     def child(self, name):
@@ -36,7 +36,8 @@ class Trace(object):
         if annotation.endpoint is None and self._endpoint is not None:
             annotation.endpoint = self._endpoint
 
-        self._tracer.record(self, annotation)
+        for tracer in self._tracers:
+            tracer.record(self, annotation)
 
     def set_endpoint(self, endpoint):
         self._endpoint = endpoint

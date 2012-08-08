@@ -59,16 +59,22 @@ class _EndAnnotationTracer(object):
 
 
 class RESTKinTracer(_EndAnnotationTracer):
-    def __init__(self, trace_url):
+    def __init__(self, trace_url, auth_token=None):
         super(RESTKinTracer, self).__init__()
 
         self._agent = Agent(reactor)
         self._trace_url = trace_url
+        self._auth_token = auth_token
 
     def send_trace(self, trace, annotations):
         json_out = json_formatter(trace, annotations)
         producer = StringProducer(json_out)
-        self._agent.request('POST', self._trace_url, Headers({}), producer)
+        headers = Headers({})
+
+        if self._auth_token is not None:
+            headers.addRawHeader('X-Auth-Token', self._auth_token)
+
+        self._agent.request('POST', self._trace_url, headers, producer)
 
 
 class ZipkinTracer(_EndAnnotationTracer):
@@ -99,13 +105,18 @@ class DebugTracer(object):
         self.destination.flush()
 
 
-_globalTracer = None
+_globalTracers = []
 
 
-def set_tracer(tracer):
+def set_tracers(tracers):
     global _globalTracer
-    _globalTracer = tracer
+    _globalTracer = tracers
 
 
-def get_tracer():
-    return _globalTracer
+def push_tracer(tracer):
+    global _globalTracers
+    _globalTracers.append(tracer)
+
+
+def get_tracers():
+    return _globalTracers
