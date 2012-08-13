@@ -139,7 +139,7 @@ class KeystoneAgent(object):
                 return body
             else:
                 self.msg("_handleAuthResponse: %(response)s rejected", response=response)
-                return fail()
+                return fail(ConnectError("Authentication headers rejected"))
 
         self.msg("_getAuthHeaders: state is %(state)s", state=self._state)
 
