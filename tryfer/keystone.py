@@ -108,12 +108,16 @@ class KeystoneAgent(object):
             try:
                 body_parsed = json.loads(body)
 
-                self.auth_headers["X-Tenant-Id"] = body_parsed['access']['token']['tenant']['id'].encode('ascii', 'replace')
-                self.auth_headers["X-Auth-Token"] = body_parsed['access']['token']['id'].encode('ascii', 'replace')
-                self.auth_token_expires = body_parsed['access']['token']['expires'].encode('ascii', 'replace')
+                tenant_id = body_parsed['access']['token']['tenant']['id'].encode('ascii')
+                auth_token = body_parsed['access']['token']['id'].encode('ascii')
+                auth_token_expires = body_parsed['access']['token']['expires'].encode('ascii')
+
+                self.auth_headers["X-Tenant-Id"] = tenant_id
+                self.auth_headers["X-Auth-Token"] = auth_token
+                self.auth_token_expires = auth_token_expires
 
                 self._state = self.AUTHENTICATED
-
+                print "baz"
                 self.msg("_handleAuthHeaders: found token %(token)s, tenant id %(tenant_id)s",
                          token=self.auth_headers["X-Auth-Token"], tenant_id=self.auth_headers["X-Tenant-Id"])
 
@@ -155,7 +159,9 @@ class KeystoneAgent(object):
                 # Set our state to authenticating and begin the authentication process
                 self._state = self.AUTHENTICATING
 
-                d = self.agent.request('POST', self.auth_url, Headers({"Content-type": ["application/json"]}), self._getAuthRequestBodyProducer())
+                d = self.agent.request('POST', self.auth_url,
+                                       Headers({"Content-type": ["application/json"]}),
+                                       self._getAuthRequestBodyProducer())
                 d.addCallback(_handleAuthResponse)
 
             return auth_headers_deferred
