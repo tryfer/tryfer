@@ -1,16 +1,18 @@
 if __name__ == '__main__':
-    from twisted.internet import reactor
+    import sys
 
-    from tryfer.tracers import ZipkinTracer, push_tracer, RESTKinTracer
+    from twisted.internet import reactor
+    from twisted.python import log
+
+    from tryfer.tracers import push_tracer, RESTkinScribeTracer
     from tryfer.trace import Trace, Annotation, Endpoint
     from scrivener import ScribeClient
     from twisted.internet.endpoints import TCP4ClientEndpoint
 
-    push_tracer(ZipkinTracer(ScribeClient(
-        TCP4ClientEndpoint(reactor, 'localhost', 1234))))
+    log.startLogging(sys.stdout)
 
-    push_tracer(RESTKinTracer('http://localhost:9000/v1.0/tenantId/trace',
-                              auth_token=None))
+    push_tracer(RESTkinScribeTracer(ScribeClient(
+        TCP4ClientEndpoint(reactor, 'localhost', 1234))))
 
     webEndpoint = Endpoint('10.0.0.1', 80, 'demo-web')
     backendEndpoint = Endpoint('10.0.0.2', 81, 'demo-backend')

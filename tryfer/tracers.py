@@ -1,39 +1,18 @@
+from StringIO import StringIO
+
 from collections import defaultdict
 
 from zope.interface import implements
 
 from twisted.internet import reactor
-from twisted.internet.defer import succeed
+from twisted.python import log
 
-from twisted.web.client import Agent
+from twisted.web.client import Agent, FileBodyProducer
 from twisted.web.http_headers import Headers
-from twisted.web.iweb import IBodyProducer
 
 from tryfer.interfaces import ITracer
 from tryfer._thrift.zipkinCore import constants
 from tryfer.formatters import json_formatter, base64_thrift_formatter
-
-
-class StringProducer(object):
-    """
-    Writes a pre-defined string into the body of a
-    L{twisted.web.client.Request}.
-    """
-    implements(IBodyProducer)
-
-    def __init__(self, body):
-        self.body = body
-        self.length = len(body)
-
-    def startProducing(self, consumer):
-        consumer.write(self.body)
-        return succeed(None)
-
-    def pauseProducing(self):
-        pass
-
-    def stopProducing(self):
-        pass
 
 
 class _EndAnnotationTracer(object):
@@ -54,12 +33,16 @@ class _EndAnnotationTracer(object):
         if annotation.name in self.END_ANNOTATIONS:
             annotations = self._annotations_for_trace[trace_key]
             self._annotations_for_trace[trace_key] = []
+            log.msg(format="Sending trace: %(trace_key)s w/ %(annotations)s",
+                    system=self.__class__.__name__,
+                    trace_key=trace_key,
+                    annotations=annotations)
             self.send_trace(trace, annotations)
 
 
-class RESTKinTracer(_EndAnnotationTracer):
+class RESTkinTracer(_EndAnnotationTracer):
     def __init__(self, trace_url, auth_token=None):
-        super(RESTKinTracer, self).__init__()
+        super(RESTkinTracer, self).__init__()
 
         self._agent = Agent(reactor)
         self._trace_url = trace_url
@@ -67,7 +50,7 @@ class RESTKinTracer(_EndAnnotationTracer):
 
     def send_trace(self, trace, annotations):
         json_out = json_formatter(trace, annotations)
-        producer = StringProducer(json_out)
+        producer = FileBodyProducer(StringIO(json_out))
         headers = Headers({})
 
         if self._auth_token is not None:
@@ -85,6 +68,18 @@ class ZipkinTracer(_EndAnnotationTracer):
     def send_trace(self, trace, annotations):
         thrift_out = base64_thrift_formatter(trace, annotations)
         self._scribe.log(self._category, [thrift_out])
+
+
+class RESTkinScribeTracer(_EndAnnotationTracer):
+    category = 'restkin'
+
+    def __init__(self, scribe_client, category=None):
+        super(RESTkinScribeTracer, self).__init__()
+        self._scribe = scribe_client
+        self._category = category or 'restkin'
+
+    def send_trace(self, trace, annotations):
+        self._scribe.log(self._category, [json_formatter(trace, annotations)])
 
 
 class DebugTracer(object):
