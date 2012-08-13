@@ -118,7 +118,7 @@ class KeystoneAgent(object):
                 self.auth_token_expires = auth_token_expires
 
                 self._state = self.AUTHENTICATED
-                print "baz"
+
                 self.msg("_handleAuthHeaders: found token %(token)s, tenant id %(tenant_id)s",
                          token=self.auth_headers["X-Auth-Token"], tenant_id=self.auth_headers["X-Tenant-Id"])
 
