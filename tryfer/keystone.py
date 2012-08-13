@@ -10,6 +10,7 @@ from twisted.web.client import FileBodyProducer
 from twisted.web.http_headers import Headers
 from twisted.python import log
 
+
 class KeystoneAgent(object):
     """
     Fetches and inserts X-Auth-Token and X-Tenant-Id headers into requests made using this agent.
