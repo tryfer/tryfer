@@ -1,192 +1,191 @@
+import json
+
+from cStringIO import StringIO
+from Queue import Queue
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, succeed, fail
 from twisted.internet.protocol import Protocol
 from twisted.internet.error import ConnectionLost, ConnectionDone, ConnectError
 from twisted.web.client import FileBodyProducer
 from twisted.web.http_headers import Headers
-from cStringIO import StringIO
-from Queue import Queue
-
-import json
-
-KEYSTONE_AUTH_HEADER = Headers({"Content-type": ["application/json"]})
-MAX_RETRIES = 3
-
-NOT_AUTHENTICATED = 1
-AUTHENTICATING = 2
-AUTHENTICATED = 3
-
-DEBUG = False
+from twisted.python import log
 
 class KeystoneAgent(object):
     """
-    Forwards requests to a server, handling authentication (X-Auth-Token header) transparently.
+    Forwards requests to a server, handling authentication (X-Auth-Token and X-Tenant-Id headers) transparently.
     When a forwarded request is denied (due to an expired token, or some other reason), a new token
     is obtained using the authencation credentials.
     """
 
+    MAX_RETRIES = 3
+
+    NOT_AUTHENTICATED = 1
+    AUTHENTICATING = 2
+    AUTHENTICATED = 3
+
     def __init__(self, agent, auth_url, auth_cred):
         """
-        @param agent:       Agent to use for making authenticated requests
-        @param auth_url:    URL to use for authentication
-        @param auth_cred:   A dictionary in the form {"username": "username", "password": "password"}
+        @param agent:       Agent for use by this class
+        @param auth_url:    URL to use for Keystone authentication
+        @param auth_cred:   A tuple in the form ("username", "password")
+
+        @cvar auth_headers: Dictionary in the form ("X-Tenant-Id": "id", "X-Auth-Token": "token") containing
+                            current authentication header data.
         """
         self.agent = agent
         self.auth_url = auth_url
         self.auth_cred = auth_cred
-        self.tenant_id = None
-        self.auth_token = None
+
+        self.auth_headers = {"X-Auth-Token": None, "X-Tenant-Id": None}
         self.auth_token_expires = None
-        self._state = NOT_AUTHENTICATED
-        self._token_requests = Queue()
+
+        self._state = self.NOT_AUTHENTICATED
+        self._headers_requests = Queue()
+
+
+    def msg(self, msg, **kwargs):
+        log.msg(format=msg, system="KeystoneAgent", **kwargs)
 
     def request(self, method, uri, headers=None, bodyProducer=None):
-        if DEBUG:
-            print "KeystoneAgent request ({method}): {uri}".format(method=method, uri=uri)
+        self.msg("request (%(method)s): %(uri)s", method=method, uri=uri)
 
         return self._request(method, uri, headers=headers, bodyProducer=bodyProducer)
 
     def _request(self, method, uri, headers=None, bodyProducer=None, depth=0):
+        self.msg("_request depth %(depth)s (%(method)s): %(uri)s",
+                method=method, uri=uri, depth=depth)
 
         if headers is None:
             headers = Headers()
 
-        if DEBUG:
-            print "KeystoneAgent _request depth {depth} ({method}): {uri}".format(method=method, uri=uri, depth=depth)
-
-        if depth == MAX_RETRIES:
+        if depth == self.MAX_RETRIES:
             return fail(ConnectError("Max retries exceeded"))
 
         def _handleResponse(response, method=method, uri=uri, headers=headers):
-            if DEBUG:
-                print "KeystoneAgent _handleResponse ({method}): {uri}".format(method=method, uri=uri, depth=depth)
-            if response.code == 401:
-                #The auth token was not accepted, force an update to the auth token and recurse
-                self.auth_token = None
-                self.auth_token_expires = None
+            self.msg("_handleResponse (%(method)s): %(uri)s",
+                    method=method, uri=uri, depth=depth)
 
-                #We are no longer authenticated
-                self._state = NOT_AUTHENTICATED
+            if response.code == 401:
+                #The auth headers were not accepted, force an update and recurse
+                self.auth_headers = {"X-Auth-Token": None, "X-Tenant-Id": None}
+                self._state = self.NOT_AUTHENTICATED
 
                 return self._request(method, uri, headers=headers, bodyProducer=bodyProducer, depth=depth+1)
             else:
-                #The auth token was accepted, return the response
+                #The auth headers were accepted, return the response
                 return response
 
-        def _makeRequest(auth_token):
-            if DEBUG:
-                print "KeystoneAgent _makeRequest token {auth_token} ({method}): {uri}".format(method=method, uri=uri, auth_token=auth_token)
+        def _makeRequest(auth_headers):
+            self.msg("_makeRequest  %(auth_headers)s (%(method)s): %(uri)s",
+                    method=method, uri=uri, auth_headers=auth_headers)
 
-            headers.setRawHeaders("X-Auth-Token", [auth_token])
-            print method, uri, headers, bodyProducer
+            headers.setRawHeaders("X-Tenant-Id", [auth_headers["X-Tenant-Id"]])
+            headers.setRawHeaders("X-Auth-Token", [auth_headers["X-Auth-Token"]])
+
             req = self.agent.request(method, uri, headers=headers, bodyProducer=bodyProducer)
             req.addCallback(_handleResponse)
             return req
 
-        #Asynchronously get the auth token, then make the request using it
-        d = self._getAuthToken()
+        #Asynchronously get the auth headers, then make the request using them
+        d = self._getAuthHeaders()
         d.addCallback(_makeRequest)
         return d
 
     def _getAuthRequestBodyProducer(self):
-        return FileBodyProducer(StringIO(json.dumps({"auth": {"passwordCredentials": self.auth_cred}})))
+        return FileBodyProducer(StringIO(json.dumps({"auth":
+                                                     {"passwordCredentials":
+                                                      {"username": self.auth_cred[0],
+                                                       "password": self.auth_cred[1]}}})))
 
-    def _getAuthToken(self):
+    def _getAuthHeaders(self):
         """
-        Get an auth token to be included as an X-Auth-Token header.  If we have a valid token already,
-        it is immediately returned.  If we do not have a valid token, then get a new token.  If we are
-        currently in the process of getting a token, put this request into a queue to be handled when
-        the token is received.
+        Get the authentication header data. If we have a valid header data already, they are immediately returned.
+        If not, then we get new ones.  If we are currently in the process of getting the header data, put this
+        request into a queue to be handled when the data are received.
+
+        @returns:   A deferred that will eventially be called back with the header data
         """
-        if DEBUG:
-            print "KeystoneAgent _getAuthToken"
+        self.msg("_getAuthHeaders")
 
         def _handleAuthBody(body):
-            if DEBUG:
-                print "KeystoneAgent _handleAuthBody: {body}".format(body=body)
+            self.msg("_handleAuthHeaders: %(body)s", body=body)
 
             try:
                 body_parsed = json.loads(body)
-                self.auth_token = body_parsed['access']['token']['id'].encode('ascii', 'replace')
-                self.tenant_id = body_parsed['access']['token']['tenant']['id'].encode('ascii', 'replace')
+                self.auth_headers["X-Tenant-Id"] = body_parsed['access']['token']['tenant']['id'].encode('ascii', 'replace')
+                self.auth_headers["X-Auth-Token"] = body_parsed['access']['token']['id'].encode('ascii', 'replace')
+
                 self.auth_token_expires = body_parsed['access']['token']['expires'].encode('ascii', 'replace')
 
-                self._state = AUTHENTICATED
+                self._state = self.AUTHENTICATED
 
-                if DEBUG:
-                    print "KeystoneAgent _handleAuthBody: found token {token}".format(token= self.auth_token)
+                self.msg("_handleAuthHeaders: found token %(token)s, tenant id %(tenant_id)s",
+                        token=self.auth_headers["X-Auth-Token"], tenant_id=self.auth_headers["X-Tenant-Id"])
 
                 # Callback all queued auth token requests
-                while not self._token_requests.empty():
-                    self._token_requests.get().callback(self.auth_token)
+                while not self._headers_requests.empty():
+                    self._headers_requests.get().callback(self.auth_headers)
 
             except ValueError as e:
-                if DEBUG:
-                    print "KeystoneAgent _handleAuthBody: bad response {error}".format(error = e)
-
                 # We received bad JSON
                 return fail(e)
 
         def _handleAuthResponse(response):
-            if DEBUG:
-                print "KeystoneAgent _handleAuthResponse: {response}".format(response=response)
-
             if response.code == 200:
+                self.msg("_handleAuthResponse: %(response)s accepted", response=response)
                 body = Deferred()
-                response.deliverBody(KeystoneAuthProtocol(body))
+                response.deliverBody(StringIOReceiver(body))
                 body.addCallback(_handleAuthBody)
                 return body
             else:
+                self.msg("_handleAuthResponse: %(response)s rejected", response=response)
                 return fail()
-                #return Failure(#exc)
 
-        if DEBUG:
-            print "KeystoneAgent _getAuthToken: state is {state}".format(state=self._state)
+        self.msg("_getAuthHeaders: state is %(state)s", state=self._state)
 
-        if self._state == AUTHENTICATED:
-            # We are authenticated, immediatelly succeed with the current auth token
-            print "KeystoneAgent _getAuthToken: succeed with {token}".format(token=self.auth_token)
-            return succeed(self.auth_token)
-        elif self._state == NOT_AUTHENTICATED or self._state == AUTHENTICATING:
-            # We cannot satisfy the auth token request immediately, put it in a queue
+        if self._state == self.AUTHENTICATED:
+            # We are authenticated, immediatelly succeed with the current auth headers
+            self.msg("_getAuthHeaders: succeed with %(headers)s", headers=self.auth_headers)
+            return succeed(self.auth_headers)
+        elif self._state == self.NOT_AUTHENTICATED or self._state == self.AUTHENTICATING:
+            # We cannot satisfy the auth header request immediately, put it in a queue
 
-            if DEBUG:
-                print "KeystoneAgent _getAuthToken: defer, place in queue"
+            self.msg("_getAuthHeaders: defer, place in queue")
 
-            auth_token_deferred = Deferred()
-            self._token_requests.put(auth_token_deferred)
+            auth_headers_deferred = Deferred()
+            self._headers_requests.put(auth_headers_deferred)
 
-            if self._state == NOT_AUTHENTICATED:
-                if DEBUG:
-                    print "KeystoneAgent _getAuthToken: not authenticated, start authentication process"
+            if self._state == self.NOT_AUTHENTICATED:
+                self.msg("_getAuthHeaders: not authenticated, start authentication process")
 
                 # We are not authenticated, and not in the process of authenticating.
                 # Set our state to authenticating and begin the authentication process
-                self._state = AUTHENTICATING
+                self._state = self.AUTHENTICATING
 
-                d = self.agent.request('POST', self.auth_url, KEYSTONE_AUTH_HEADER, self._getAuthRequestBodyProducer())
+                d = self.agent.request('POST', self.auth_url, Headers({"Content-type": ["application/json"]}), self._getAuthRequestBodyProducer())
                 d.addCallback(_handleAuthResponse)
 
-            return auth_token_deferred
+            return auth_headers_deferred
         else:
             # Bad state, fail
             return fail(ValueError("Invalid state encountered"))
 
-class KeystoneAuthProtocol(Protocol):
+
+class StringIOReceiver(Protocol):
     """
     A protocol to aggregate chunked data as its received, and fire a callback
     with the aggregated data when the connection is closed.
     """
 
-    def __init__(self, auth_body):
+    def __init__(self, finished):
         """
-        @param auth_body:   Deferred to fire when all data have been aggregated.
+        @param body:   Deferred to fire when all data have been aggregated.
         """
         self.buffer = StringIO()
-        self.auth_body = auth_body
+        self.finished = finished
 
     def dataReceived(self, data):
         self.buffer.write(data)
 
     def connectionLost(self, reason):
-        self.auth_body.callback(self.buffer.getvalue())
+        self.finished.callback(self.buffer.getvalue())
