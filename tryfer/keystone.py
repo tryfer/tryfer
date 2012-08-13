@@ -57,7 +57,7 @@ class KeystoneAgent(object):
             headers = Headers()
 
         if depth == self.MAX_RETRIES:
-            return fail(ConnectError("Max retries exceeded"))
+            return fail(AuthenticationError("Authentication headers rejected after max retries"))
 
         def _handleResponse(response, method=method, uri=uri, headers=headers):
             self.msg("_handleResponse (%(method)s): %(uri)s",
@@ -128,7 +128,7 @@ class KeystoneAgent(object):
 
             except ValueError as e:
                 # We received a bad response
-                return fail(e)
+                return fail(MalformedJSONError("Malformed keystone response received"))
 
         def _handleAuthResponse(response):
             if response.code == 200:
@@ -139,7 +139,7 @@ class KeystoneAgent(object):
                 return body
             else:
                 self.msg("_handleAuthResponse: %(response)s rejected", response=response)
-                return fail(ConnectError("Authentication headers rejected"))
+                return fail(KeystoneAuthenticationError("Keystone authentication credentials rejected"))
 
         self.msg("_getAuthHeaders: state is %(state)s", state=self._state)
 
@@ -169,7 +169,19 @@ class KeystoneAgent(object):
         else:
             # Bad state, fail
 
-            return fail(ValueError("Invalid state encountered"))
+            return fail(RuntimeError("Invalid state encountered"))
+
+
+class AuthenticationError(Exception):
+    pass
+
+
+class KeystoneAuthenticationError(AuthenticationError):
+    pass
+
+
+class MalformedJSONError(Exception):
+    pass
 
 
 class StringIOReceiver(Protocol):
