@@ -16,9 +16,7 @@ NOT_AUTHENTICATED = 1
 AUTHENTICATING = 2
 AUTHENTICATED = 3
 
-DEBUG = True
-
-b = ""
+DEBUG = False
 
 class KeystoneAgent(object):
     """
@@ -66,6 +64,10 @@ class KeystoneAgent(object):
                 #The auth token was not accepted, force an update to the auth token and recurse
                 self.auth_token = None
                 self.auth_token_expires = None
+
+                #We are no longer authenticated
+                self._state = NOT_AUTHENTICATED
+
                 return self._request(method, uri, headers=headers, bodyProducer=bodyProducer, depth=depth+1)
             else:
                 #The auth token was accepted, return the response
