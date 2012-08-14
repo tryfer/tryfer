@@ -6,6 +6,7 @@ if __name__ == '__main__':
 
     from tryfer.tracers import push_tracer, RESTkinScribeTracer
     from tryfer.trace import Trace, Annotation, Endpoint
+
     from scrivener import ScribeClient
     from twisted.internet.endpoints import TCP4ClientEndpoint
 

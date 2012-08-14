@@ -4,10 +4,9 @@ from collections import defaultdict
 
 from zope.interface import implements
 
-from twisted.internet import reactor
 from twisted.python import log
 
-from twisted.web.client import Agent, FileBodyProducer
+from twisted.web.client import FileBodyProducer
 from twisted.web.http_headers import Headers
 
 from tryfer.interfaces import ITracer
@@ -41,22 +40,17 @@ class _EndAnnotationTracer(object):
 
 
 class RESTkinTracer(_EndAnnotationTracer):
-    def __init__(self, trace_url, auth_token=None):
+    def __init__(self, agent, trace_url):
         super(RESTkinTracer, self).__init__()
+        self._agent = agent
 
-        self._agent = Agent(reactor)
         self._trace_url = trace_url
-        self._auth_token = auth_token
 
     def send_trace(self, trace, annotations):
         json_out = json_formatter(trace, annotations)
         producer = FileBodyProducer(StringIO(json_out))
-        headers = Headers({})
 
-        if self._auth_token is not None:
-            headers.addRawHeader('X-Auth-Token', self._auth_token)
-
-        self._agent.request('POST', self._trace_url, headers, producer)
+        self._agent.request('POST', self._trace_url, Headers({}), producer)
 
 
 class ZipkinTracer(_EndAnnotationTracer):
