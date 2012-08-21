@@ -2,3 +2,4 @@ thrift==0.8.0
 Twisted==12.1.0
 zope.interface==4.0.1
 mock
+git+https://github.com/racker/scrivener
