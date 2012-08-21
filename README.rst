@@ -6,7 +6,6 @@ library for Zipkin.
 
 It's design is heavily influenced by Finagle_'s tracing libraries.
 
-
-.. Zipkin: https://github.com/twitter/zipkin
-.. Twisted: http://twistedmatrix.com/
-.. Finagle: https://github.com/twitter/finagle
+.. _Zipkin: https://github.com/twitter/zipkin
+.. _Twisted: http://twistedmatrix.com/
+.. _Finagle: https://github.com/twitter/finagle
