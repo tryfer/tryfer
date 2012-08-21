@@ -27,11 +27,11 @@ class TraceTests(TestCase):
     def test_new_Trace(self):
         t = Trace('test_trace')
         self.assertNotEqual(t.trace_id, None)
-        self.assertIsInstance(t.trace_id, int)
+        self.assertIsInstance(t.trace_id, (int, long))
         self.failIf(t.trace_id >= MAX_ID)
 
         self.assertNotEqual(t.span_id, None)
-        self.assertIsInstance(t.span_id, int)
+        self.assertIsInstance(t.span_id, (int, long))
         self.failIf(t.span_id >= MAX_ID)
 
         self.assertEqual(t.parent_span_id, None)
