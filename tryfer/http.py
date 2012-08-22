@@ -1,7 +1,7 @@
 from zope.interface import implements
 
 from twisted.web.http_headers import Headers
-from twisted.web.iweb import IResource
+from twisted.web.resource import IResource
 
 from tryfer.interfaces import ITrace
 from tryfer.trace import Trace, Annotation
@@ -35,7 +35,7 @@ class TracingAgent(object):
 
         # Similar to the headers above we use the annotation 'http.uri' for
         # because that is the standard set forth in the finagle http Codec.
-        trace.record('http.uri', Annotation.string(url))
+        trace.record(Annotation.string('http.uri', url))
         trace.record(Annotation.client_send())
 
         def _finished(resp):
