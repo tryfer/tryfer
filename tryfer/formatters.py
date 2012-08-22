@@ -69,7 +69,7 @@ def base64_thrift(thrift_obj):
     return trans.getvalue().encode('base64').strip()
 
 
-def binary_annotation_formatter(annotation):
+def binary_annotation_formatter(annotation, host=None):
     annotation_types = {
         'string': ttypes.AnnotationType.STRING,
         'bytes': ttypes.AnnotationType.BYTES,
@@ -85,7 +85,8 @@ def binary_annotation_formatter(annotation):
     return ttypes.BinaryAnnotation(
         annotation.name,
         value,
-        annotation_type)
+        annotation_type,
+        host)
 
 
 def base64_thrift_formatter(trace, annotations):
@@ -107,7 +108,7 @@ def base64_thrift_formatter(trace, annotations):
                 host=host))
         else:
             binary_annotations.append(
-                binary_annotation_formatter(annotation))
+                binary_annotation_formatter(annotation, host))
 
     thrift_trace = ttypes.Span(
         trace_id=trace.trace_id,
