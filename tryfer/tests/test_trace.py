@@ -16,14 +16,20 @@ import math
 
 import mock
 
+from zope.interface.verify import verifyObject
+
 from twisted.trial.unittest import TestCase
 
+from tryfer.interfaces import ITrace, IAnnotation, IEndpoint
 from tryfer.trace import Trace, Annotation, Endpoint
 
 MAX_ID = math.pow(2, 63) - 1
 
 
 class TraceTests(TestCase):
+    def test_verifyObject(self):
+        verifyObject(ITrace, Trace('test'))
+
     def test_new_Trace(self):
         t = Trace('test_trace')
         self.assertNotEqual(t.trace_id, None)
@@ -76,6 +82,9 @@ class AnnotationTests(TestCase):
 
     def tearDown(self):
         self.time_patcher.stop()
+
+    def test_verifyObject(self):
+        verifyObject(IAnnotation, Annotation('foo', 'bar', 'string'))
 
     def test_timestamp(self):
         a = Annotation.timestamp('test')

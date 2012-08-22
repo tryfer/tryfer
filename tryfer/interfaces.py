@@ -18,38 +18,91 @@ from zope.interface import Interface, Attribute
 class ITracer(Interface):
     """
     An ITracer is responsible for collecting and delivering annotations and traces.
+
+    Traces are expected to be delivered asynchronously and ITracer.record
+    is not expected to wait until a Trace has been successfully delivered before
+    returning to it's caller.  Given the asynchronous nature of trace delivery any
+    errors which occur as a result of attempting to deliver a trace MUST be handled by
+    the ITracer provider.
     """
 
-    def record(self, trace, annotation):
+    def record(trace, annotation):
         """
         Record an annotation for the specified trace.
+
+        @param trace: An L{ITrace} provider.
+        @param annotation: An L{IAnnotation} provider.
+
+        @returns C{None}
         """
 
 
 class ITrace(Interface):
+    """
+    An ITrace provider encapsulates information about the current span of this trace
+    and provides a mechanism for creating new child spans and recording annotations
+    for this span.
+    """
+
     trace_id = Attribute("64-bit integer identifying this trace.")
     span_id = Attribute("64-bit integer identifying this span.")
     parent_span_id = Attribute("64-bit integer identifying this trace's parent span or None.")
     name = Attribute("A string describing this span.")
 
-    def child(self, name):
+    def child(name):
         """
-        Return an ITrace which is a child of this one.
+        Return an ITrace provider which is a child of this one.  A trace T1 can
+        be said to be a child of trace T0 if:
+            T0.trace_id == T1.trace_id and T0.span_id == T1.parent_span_id.
+
+        @returns L{ITrace} provider
         """
 
-    def record(self, annotation):
+    def record(annotation):
         """
-        Record an annotation for this trace.
+        Record an annotation for this trace.  This is the primary entry point for
+        associating annotations with traces.  It will delegate actual recording
+        to zero or more L{ITracer} providers.
+
+        @param annotation: An L{IAnnotation} provider.
+
+        @returns C{None}
         """
 
 
 class IEndpoint(Interface):
-    ip = Attribute("IP Address of this Endpoint")
-    port = Attribute("Port of this Endpoint")
+    """
+    An IEndpoint represents a source of annotations in a distributed system.
+
+    An endpoint represents the place where an event represented by an annotation
+    occurs.
+
+    In a simple client/server RPC system both the client and server will record
+    Annotations for the same trace & span but those annotations will have separate
+    endpoints.  On the client the endpoint will represent the client service and
+    on the server the endpoint will represent server server.
+    """
+
+    ipv4 = Attribute("Dotted decimal string IP Address of this Endpoint")
+    port = Attribute("Integer port of this Endpoint")
     service_name = Attribute("Name of the service for this endpoint.")
 
 
 class IAnnotation(Interface):
+    """
+    An annotation represents a piece of information attached to a trace.
+
+    Most commonly this will be an event like:
+     * Client send
+     * Server receive
+     * Server send
+     * Client receive
+
+    It may however also include non-event information such as the URI of
+    an HTTP request being made, or the user id that initiated the action
+    which caused the operations being traced to be performed.
+    """
+
     name = Attribute("The name of this annotation.")
     value = Attribute("The value of this annotation.")
     annotation_type = Attribute("A string describing the type of this annotation.")
