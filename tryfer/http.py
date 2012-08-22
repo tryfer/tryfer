@@ -1,5 +1,9 @@
-from twisted.web.http_headers import Headers
+from zope.interface import implements
 
+from twisted.web.http_headers import Headers
+from twisted.web.iweb import IResource
+
+from tryfer.interfaces import ITrace
 from tryfer.trace import Trace, Annotation
 
 
@@ -23,11 +27,11 @@ class TracingAgent(object):
         # Currently not implemented are X-B3-Sampled and X-B3-Flags
         # Tryfer's underlying Trace implementation has no notion of a Sampled
         # trace and I haven't figured out what flags are for.
-        headers.addRawHeader('X-B3-TraceId', trace.trace_id)
-        headers.addRawHeader('X-B3-SpanId', trace.span_id)
+        headers.setRawHeaders('X-B3-TraceId', [trace.trace_id])
+        headers.setRawHeaders('X-B3-SpanId', [trace.span_id])
 
         if trace.parent_span_id is not None:
-            headers.addRawHeader('X-B3-ParentSpanId', trace.parent_span_id)
+            headers.setRawHeaders('X-B3-ParentSpanId', [trace.parent_span_id])
 
         # Similar to the headers above we use the annotation 'http.uri' for
         # because that is the standard set forth in the finagle http Codec.
@@ -42,3 +46,30 @@ class TracingAgent(object):
         d.addBoth(_finished)
 
         return d
+
+
+class TracingWrapperResource(object):
+    implements(IResource)
+
+    def __init__(self, wrapped):
+        self._wrapped = wrapped
+
+    def getChild(self, path, request):
+        headers = request.requestHeaders
+
+        trace = Trace(
+            request.method,
+            headers.getRawHeaders('X-B3-TraceId', [None])[0],
+            headers.getRawHeaders('X-B3-SpanId', [None])[0],
+            headers.getRawHeaders('X-B3-ParentSpanId', [None])[0])
+
+        request.setComponent(ITrace, trace)
+
+        trace.record(Annotation.server_recv())
+
+        def _record_finish(_ignore):
+            trace.record(Annotation.server_send())
+
+        request.notifyFinish().addCallback(_record_finish)
+
+        return self._wrapped.getChild(path, request)
