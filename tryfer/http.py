@@ -5,6 +5,7 @@ from twisted.web.resource import IResource
 
 from tryfer.interfaces import ITrace
 from tryfer.trace import Trace, Annotation
+from tryfer.formatters import hex_str
 
 
 class TracingAgent(object):
@@ -27,11 +28,11 @@ class TracingAgent(object):
         # Currently not implemented are X-B3-Sampled and X-B3-Flags
         # Tryfer's underlying Trace implementation has no notion of a Sampled
         # trace and I haven't figured out what flags are for.
-        headers.setRawHeaders('X-B3-TraceId', [trace.trace_id])
-        headers.setRawHeaders('X-B3-SpanId', [trace.span_id])
+        headers.setRawHeaders('X-B3-TraceId', [hex_str(trace.trace_id)])
+        headers.setRawHeaders('X-B3-SpanId', [hex_str(trace.span_id)])
 
         if trace.parent_span_id is not None:
-            headers.setRawHeaders('X-B3-ParentSpanId', [trace.parent_span_id])
+            headers.setRawHeaders('X-B3-ParentSpanId', [hex_str(trace.parent_span_id)])
 
         # Similar to the headers above we use the annotation 'http.uri' for
         # because that is the standard set forth in the finagle http Codec.
@@ -48,20 +49,38 @@ class TracingAgent(object):
         return d
 
 
+def int_or_none(val):
+    if val is None:
+        return None
+
+    return int(val, 16)
+
+
 class TracingWrapperResource(object):
     implements(IResource)
+
+    isLeaf = False
 
     def __init__(self, wrapped):
         self._wrapped = wrapped
 
-    def getChild(self, path, request):
+    def render(self, request):
+        raise NotImplementedError(
+            "TracingWrapperResource.render should never be called")
+
+    def putChild(self, path, child):
+        raise NotImplementedError(
+            "TracingWrapperResource.putChild is not implemented because"
+            "TracingWrapperResource does not support children.")
+
+    def getChildWithDefault(self, path, request):
         headers = request.requestHeaders
 
         trace = Trace(
             request.method,
-            headers.getRawHeaders('X-B3-TraceId', [None])[0],
-            headers.getRawHeaders('X-B3-SpanId', [None])[0],
-            headers.getRawHeaders('X-B3-ParentSpanId', [None])[0])
+            int_or_none(headers.getRawHeaders('X-B3-TraceId', [None])[0]),
+            int_or_none(headers.getRawHeaders('X-B3-SpanId', [None])[0]),
+            int_or_none(headers.getRawHeaders('X-B3-ParentSpanId', [None])[0]))
 
         request.setComponent(ITrace, trace)
 
@@ -72,4 +91,4 @@ class TracingWrapperResource(object):
 
         request.notifyFinish().addCallback(_record_finish)
 
-        return self._wrapped.getChild(path, request)
+        return self._wrapped.getChildWithDefault(path, request)
