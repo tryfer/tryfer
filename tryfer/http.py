@@ -37,7 +37,9 @@ class TracingAgent(object):
             headers = Headers({})
 
         # These headers are based on the headers used by finagle's tracing
-        # http Codec.  https://github.com/twitter/finagle/blob/master/finagle-http/src/main/scala/com/twitter/finagle/http/Codec.scala#L200
+        # http Codec.
+        #
+        # https://github.com/twitter/finagle/blob/master/finagle-http/
         #
         # Currently not implemented are X-B3-Sampled and X-B3-Flags
         # Tryfer's underlying Trace implementation has no notion of a Sampled
@@ -46,7 +48,8 @@ class TracingAgent(object):
         headers.setRawHeaders('X-B3-SpanId', [hex_str(trace.span_id)])
 
         if trace.parent_span_id is not None:
-            headers.setRawHeaders('X-B3-ParentSpanId', [hex_str(trace.parent_span_id)])
+            headers.setRawHeaders('X-B3-ParentSpanId',
+                                  [hex_str(trace.parent_span_id)])
 
         # Similar to the headers above we use the annotation 'http.uri' for
         # because that is the standard set forth in the finagle http Codec.

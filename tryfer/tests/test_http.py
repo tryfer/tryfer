@@ -66,7 +66,8 @@ class TracingAgentTests(TestCase):
 
         agent.request('GET', 'https://google.com')
 
-        mock_annotation.string.assert_any_call('http.uri', 'https://google.com')
+        mock_annotation.string.assert_any_call(
+            'http.uri', 'https://google.com')
 
         self.trace.child.return_value.record.assert_any_call(
             mock_annotation.string.return_value)
@@ -106,18 +107,20 @@ class TracingWrapperResourceTests(TestCase):
         verifyObject(IResource, self.resource)
 
     def test_putChildRaises(self):
-        self.assertRaises(NotImplementedError,
-            self.resource.putChild, 'foo', mock.Mock())
+        self.assertRaises(
+            NotImplementedError, self.resource.putChild, 'foo', mock.Mock())
 
     def test_renderRaises(self):
-        self.assertRaises(NotImplementedError,
-            self.resource.render, mock.Mock())
+        self.assertRaises(
+            NotImplementedError, self.resource.render, mock.Mock())
 
     def test_getChildWithDefault_calls_wrapped(self):
-        self.assertEqual(self.resource.getChildWithDefault('foo', self.request),
-                         self.wrapped.getChildWithDefault.return_value)
+        self.assertEqual(
+            self.resource.getChildWithDefault('foo', self.request),
+            self.wrapped.getChildWithDefault.return_value)
 
-        self.wrapped.getChildWithDefault.assert_called_with('foo', self.request)
+        self.wrapped.getChildWithDefault.assert_called_with(
+            'foo', self.request)
 
     @mock.patch('tryfer.http.Trace')
     def test_constructsTrace(self, mock_trace):
@@ -131,7 +134,8 @@ class TracingWrapperResourceTests(TestCase):
         self.resource.getChildWithDefault('foo', self.request)
 
         mock_annotation.server_recv.assert_called_with()
-        mock_trace.return_value.record(mock_annotation.server_recv.return_value)
+        mock_trace.return_value.record(
+            mock_annotation.server_recv.return_value)
 
     @mock.patch('tryfer.http.Annotation')
     @mock.patch('tryfer.http.Trace')
@@ -160,4 +164,3 @@ class TracingWrapperResourceTests(TestCase):
         self.resource.getChildWithDefault('foo', self.request)
 
         mock_trace.assert_called_with('GET', 10, 11, None)
-
