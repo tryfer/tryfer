@@ -20,7 +20,7 @@ from zope.interface.verify import verifyObject
 
 from twisted.trial.unittest import TestCase
 
-from tryfer.interfaces import ITrace, IAnnotation, IEndpoint
+from tryfer.interfaces import ITrace, IAnnotation
 from tryfer.trace import Trace, Annotation, Endpoint
 
 MAX_ID = math.pow(2, 63) - 1
