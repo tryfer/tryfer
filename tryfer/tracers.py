@@ -37,7 +37,8 @@ class _EndAnnotationTracer(object):
         self._annotations_for_trace = defaultdict(list)
 
     def send_trace(self, trace, annotations):
-        raise NotImplementedError("Should be implemented by transport specific subclass")
+        raise NotImplementedError(
+            "Should be implemented by transport specific subclass")
 
     def record(self, trace, annotation):
         trace_key = (trace.trace_id, trace.span_id)

@@ -55,12 +55,13 @@ class Trace(object):
             for unit testing.
         """
         self.name = name
-        # If no trace_id and span_id are given we want to generate new 64-bit integer ids.
+        # If no trace_id and span_id are given we want to generate new
+        # 64-bit integer ids.
         self.trace_id = trace_id or _uniq_id()
         self.span_id = span_id or _uniq_id()
 
-        # If no parent_span_id is given then we assume there is no parent span and
-        # leave it as None.
+        # If no parent_span_id is given then we assume there is no parent span
+        # and leave it as None.
         self.parent_span_id = parent_span_id
 
         # If no tracers are given we get the global list of tracers.
@@ -75,7 +76,8 @@ class Trace(object):
         Create a new instance of this class derived from the current instance
         such that:
 
-            new.trace_id == current.trace_id and new.parent_span_id == current.span_id
+            (new.trace_id == current.trace_id and
+             new.parent_span_id == current.span_id)
 
         The new L{Trace} instance will have a new unique span_id and if set the
         endpoint of the current L{Trace} object.
@@ -132,10 +134,14 @@ class Annotation(object):
     def __init__(self, name, value, annotation_type, endpoint=None):
         """
         @param name: C{str} name of this annotation.
-        @param value: A value of the appropriate type based on C{annotation_type}.
+
+        @param value: A value of the appropriate type based on
+            C{annotation_type}.
+
         @param annotation_type: C{str} the expected type of our C{value}.
-        @param endpoint: An optional L{IEndpoint} provider to associate with this
-            annotation or C{None}
+
+        @param endpoint: An optional L{IEndpoint} provider to associate with
+            this annotation or C{None}
         """
         self.name = name
         self.value = value
