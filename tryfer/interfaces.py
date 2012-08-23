@@ -80,7 +80,7 @@ class IEndpoint(Interface):
     In a simple client/server RPC system both the client and server will record
     Annotations for the same trace & span but those annotations will have separate
     endpoints.  On the client the endpoint will represent the client service and
-    on the server the endpoint will represent server server.
+    on the server the endpoint will represent server service.
     """
 
     ipv4 = Attribute("Dotted decimal string IP Address of this Endpoint")
