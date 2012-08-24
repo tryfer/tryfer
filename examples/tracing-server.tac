@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# > twistd -n -y examples/tracing-server.tac
+#
 
 import os
 import sys
@@ -22,12 +25,22 @@ from twisted.web import server, static
 from tryfer.http import TracingWrapperResource
 from tryfer.tracers import push_tracer, DebugTracer
 
-
+# Add the debug tracer.
 push_tracer(DebugTracer(sys.stdout))
 
+# Create an application
 application = service.Application("tracing-server")
 
+# Create a TCPServer listening on port 8080 serving the current directory
+# using twisted.web and our TracingWrapperResource.
+#
+# We can pass it a service name argument to be used in the endpoints
+# attached to our annotations.
 service = internet.TCPServer(
     8080,
-    server.Site(TracingWrapperResource(static.File(os.getcwd()))))
+    server.Site(
+        TracingWrapperResource(
+            static.File(os.getcwd()),
+            service_name='tracing-server-example')))
+
 service.setServiceParent(application)
