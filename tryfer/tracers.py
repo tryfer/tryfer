@@ -65,7 +65,10 @@ class RESTkinTracer(_EndAnnotationTracer):
         json_out = json_formatter(trace, annotations)
         producer = FileBodyProducer(StringIO(json_out))
 
-        self._agent.request('POST', self._trace_url, Headers({}), producer)
+        d = self._agent.request('POST', self._trace_url, Headers({}), producer)
+        d.addErrback(
+            log.err,
+            "Error sending trace to: {0}".format(self._trace_url))
 
 
 class ZipkinTracer(_EndAnnotationTracer):
@@ -76,7 +79,11 @@ class ZipkinTracer(_EndAnnotationTracer):
 
     def send_trace(self, trace, annotations):
         thrift_out = base64_thrift_formatter(trace, annotations)
-        self._scribe.log(self._category, [thrift_out])
+        d = self._scribe.log(self._category, [thrift_out])
+        d.adderrback(
+            log.err,
+            "Error sending trace to scribe category: {0}".format(
+                self._category))
 
 
 class RESTkinScribeTracer(_EndAnnotationTracer):
@@ -88,7 +95,11 @@ class RESTkinScribeTracer(_EndAnnotationTracer):
         self._category = category or 'restkin'
 
     def send_trace(self, trace, annotations):
-        self._scribe.log(self._category, [json_formatter(trace, annotations)])
+        d = self._scribe.log(self._category, [json_formatter(trace, annotations)])
+        d.addErrback(
+            log.err,
+            "Error sending trace to scribe category: {0}".format(
+            self._category))
 
 
 class DebugTracer(object):
