@@ -25,7 +25,7 @@ from twisted.web.http_headers import Headers
 
 from twisted.internet.defer import succeed
 
-from tryfer.trace import Trace
+from tryfer.trace import Trace, Endpoint
 from tryfer.http import TracingAgent, TracingWrapperResource
 
 
@@ -37,9 +37,11 @@ class TracingAgentTests(TestCase):
         self.trace.span_id = 2
         self.trace.parent_span_id = 1
 
-        self.trace.child.return_value.trace_id = 1
-        self.trace.child.return_value.span_id = 3
-        self.trace.child.return_value.parent_span_id = 2
+        child_trace = self.trace.child.return_value
+
+        child_trace.trace_id = 1
+        child_trace.span_id = 3
+        child_trace.parent_span_id = 2
 
     @mock.patch('tryfer.http.Trace')
     def test_no_parent(self, mock_trace):
@@ -93,6 +95,26 @@ class TracingAgentTests(TestCase):
         self.trace.child.return_value.record.assert_any_call(
             mock_annotation.client_recv.return_value)
 
+    def test_delgates_to_agent(self):
+        agent = TracingAgent(self.agent, self.trace)
+
+        agent.request('GET', 'https://google.com')
+
+        self.agent.request.assert_called_with(
+            'GET', 'https://google.com',
+            Headers({'X-B3-TraceId': ['0000000000000001'],
+                     'X-B3-SpanId': ['0000000000000003'],
+                     'X-B3-ParentSpanId': ['0000000000000002']}),
+            None)
+
+    @mock.patch('tryfer.http.Trace')
+    def test_sets_endpoint(self, mock_trace):
+        endpoint = Endpoint('127.0.0.1', 0, 'client')
+        agent = TracingAgent(self.agent, endpoint=endpoint)
+
+        agent.request('GET', 'https://google.com')
+        mock_trace.return_value.set_endpoint.assert_called_with(endpoint)
+
 
 class TracingWrapperResourceTests(TestCase):
     def setUp(self):
@@ -102,6 +124,8 @@ class TracingWrapperResourceTests(TestCase):
         self.request = mock.Mock(Request)
         self.request.method = 'GET'
         self.request.requestHeaders = mock.Mock(wraps=Headers({}))
+        self.request.getHost.return_value.host = '127.0.0.1'
+        self.request.getHost.return_value.port = 8080
 
     def test_verifyObject(self):
         verifyObject(IResource, self.resource)
@@ -164,3 +188,30 @@ class TracingWrapperResourceTests(TestCase):
         self.resource.getChildWithDefault('foo', self.request)
 
         mock_trace.assert_called_with('GET', 10, 11, None)
+
+    @mock.patch('tryfer.http.Trace')
+    def test_sets_endpoint(self, mock_trace):
+        self.resource.getChildWithDefault('foo', self.request)
+
+        set_endpoint = mock_trace.return_value.set_endpoint
+        self.assertEqual(set_endpoint.call_count, 1)
+        endpoint = set_endpoint.mock_calls[0][1][0]
+
+        self.assertEqual(endpoint.ipv4, '127.0.0.1')
+        self.assertEqual(endpoint.port, 8080)
+        self.assertEqual(endpoint.service_name, 'http')
+
+    @mock.patch('tryfer.http.Trace')
+    def test_sets_endpoint_with_service_name(self, mock_trace):
+        resource = TracingWrapperResource(
+            self.wrapped, service_name='test-http')
+
+        resource.getChildWithDefault('foo', self.request)
+
+        set_endpoint = mock_trace.return_value.set_endpoint
+        self.assertEqual(set_endpoint.call_count, 1)
+        endpoint = set_endpoint.mock_calls[0][1][0]
+
+        self.assertEqual(endpoint.ipv4, '127.0.0.1')
+        self.assertEqual(endpoint.port, 8080)
+        self.assertEqual(endpoint.service_name, 'test-http')

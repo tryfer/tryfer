@@ -18,20 +18,40 @@ from twisted.web.http_headers import Headers
 from twisted.web.resource import IResource
 
 from tryfer.interfaces import ITrace
-from tryfer.trace import Trace, Annotation
+from tryfer.trace import Trace, Annotation, Endpoint
 from tryfer.formatters import hex_str
 
 
 class TracingAgent(object):
-    def __init__(self, agent, parent_trace=None):
+    """
+    An L{Agent} wrapper which traces requests.
+    """
+
+    def __init__(self, agent, parent_trace=None, endpoint=None):
+        """
+        @param parent_trace: An L{ITrace} provider which will be used
+            as the parent of all traces.
+
+        @param endpoint: An L{IEndpoint} provider which will be set on
+            on all traces.
+        """
         self._agent = agent
         self._parent_trace = parent_trace
+        self._endpoint = endpoint
 
     def request(self, method, url, headers=None, bodyProducer=None):
+        """
+        Send a client request following HTTP redirects.
+
+        @see: L{Agent.request}.
+        """
         if self._parent_trace is None:
             trace = Trace(method)
         else:
             trace = self._parent_trace.child(method)
+
+        if self._endpoint is not None:
+            trace.set_endpoint(self._endpoint)
 
         if headers is None:
             headers = Headers({})
@@ -78,8 +98,9 @@ class TracingWrapperResource(object):
 
     isLeaf = False
 
-    def __init__(self, wrapped):
+    def __init__(self, wrapped, service_name=None):
         self._wrapped = wrapped
+        self._service_name = service_name or 'http'
 
     def render(self, request):
         raise NotImplementedError(
@@ -93,11 +114,16 @@ class TracingWrapperResource(object):
     def getChildWithDefault(self, path, request):
         headers = request.requestHeaders
 
+        host = request.getHost()
+        endpoint = Endpoint(host.host, host.port, self._service_name)
+
         trace = Trace(
             request.method,
             int_or_none(headers.getRawHeaders('X-B3-TraceId', [None])[0]),
             int_or_none(headers.getRawHeaders('X-B3-SpanId', [None])[0]),
             int_or_none(headers.getRawHeaders('X-B3-ParentSpanId', [None])[0]))
+
+        trace.set_endpoint(endpoint)
 
         request.setComponent(ITrace, trace)
 
