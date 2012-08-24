@@ -17,7 +17,6 @@ from __future__ import print_function
 import sys
 
 from twisted.internet import reactor
-
 from twisted.web.client import Agent, RedirectAgent
 
 from tryfer.tracers import push_tracer, DebugTracer
@@ -25,25 +24,23 @@ from tryfer.tracers import push_tracer, DebugTracer
 from tryfer.http import TracingAgent
 
 
-def _print_response(resp):
-    print(resp.code, resp.headers)
-
-
-def fetch(method, url):
-    a = TracingAgent(RedirectAgent(Agent(reactor)))
-    d = a.request(method, url)
-    d.addCallback(_print_response)
-    d.addErrback(print)
-    return d
-
-
 if __name__ == '__main__':
+    # Set up our DebugTracer to print json to stdout.
     push_tracer(DebugTracer(sys.stdout))
 
     def _do():
-        d = fetch(sys.argv[1], sys.argv[2])
-        d.addBoth(lambda _: reactor.stop())
+        # The Agent API is composable so we wrap an Agent in a TracingAgent
+        # and every call to TracingAgent.request will result in a client_send,
+        # client_receive, and http.uri annotations.
+        a = TracingAgent(Agent(reactor))
+        d = a.request('GET', 'http://localhost:8080/README.rst')
 
-    reactor.callWhenRunning(_do)
+        # Print the response code when receive the response.
+        d.addCallback(lambda r: print("Received {0} response.".format(r.code)))
+
+        # stop the reactor.
+        d.addBoth(lambda _: reactor.callLater(1, reactor.stop))
+
+    reactor.callLater(1, _do)
 
     reactor.run()
