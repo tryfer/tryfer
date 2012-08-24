@@ -112,7 +112,7 @@ class DebugTracer(object):
 
     def record(self, trace, annotation):
         self.destination.write('--- Traces ---\n')
-        self.destination.write(json.dumps(json.loads(json_formatter(trace, [annotation])), indent=2))
+        self.destination.write(json_formatter(trace, [annotation], indent=2))
         self.destination.write('\n')
         self.destination.flush()
 
