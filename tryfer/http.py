@@ -77,6 +77,9 @@ class TracingAgent(object):
         trace.record(Annotation.client_send())
 
         def _finished(resp):
+            # TODO: It may be advantageous here to return a wrapped response
+            # whose deliverBody can wrap it's protocol and record when the
+            # application has finished reading the contents.
             trace.record(Annotation.client_recv())
             return resp
 
@@ -99,6 +102,13 @@ class TracingWrapperResource(object):
     isLeaf = False
 
     def __init__(self, wrapped, service_name=None):
+        """
+        @param wrapped: An L{IResource} provider that we'll delegate child
+            lookup to.
+
+        @param service_name: A C{str} name of the service to be used in the
+            L{IEndpoint} for traces from this resource.  Default: 'http'
+        """
         self._wrapped = wrapped
         self._service_name = service_name or 'http'
 
@@ -114,9 +124,13 @@ class TracingWrapperResource(object):
     def getChildWithDefault(self, path, request):
         headers = request.requestHeaders
 
+        # Construct and endpoint from the requested host and port and the
+        # passed service name.
         host = request.getHost()
         endpoint = Endpoint(host.host, host.port, self._service_name)
 
+        # Construct the trace using the headers X-B3-* headers that the
+        # TracingAgent will send.
         trace = Trace(
             request.method,
             int_or_none(headers.getRawHeaders('X-B3-TraceId', [None])[0]),
@@ -125,6 +139,9 @@ class TracingWrapperResource(object):
 
         trace.set_endpoint(endpoint)
 
+        # twisted.web.server.Request is a subclass of Componentized this
+        # allows us to use ITrace(request) to get the trace and object (and
+        # create children of this trace) in the wrapped resource.
         request.setComponent(ITrace, trace)
 
         trace.record(Annotation.server_recv())
@@ -132,6 +149,9 @@ class TracingWrapperResource(object):
         def _record_finish(_ignore):
             trace.record(Annotation.server_send())
 
+        # notifyFinish returns a deferred that fires when the request is
+        # finished this will allow us to record server_send regardless of if
+        # the wrapped resource us using deferred rendering.
         request.notifyFinish().addCallback(_record_finish)
 
         return self._wrapped.getChildWithDefault(path, request)
