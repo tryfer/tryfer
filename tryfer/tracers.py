@@ -95,7 +95,8 @@ class RESTkinScribeTracer(_EndAnnotationTracer):
         self._category = category or 'restkin'
 
     def send_trace(self, trace, annotations):
-        d = self._scribe.log(self._category, [json_formatter(trace, annotations)])
+        d = self._scribe.log(self._category,
+                             [json_formatter(trace, annotations)])
         d.addErrback(
             log.err,
             "Error sending trace to scribe category: {0}".format(
