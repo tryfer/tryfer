@@ -28,9 +28,12 @@ def _uniq_id():
     Create a random 64-bit signed integer appropriate
     for use as trace and span IDs.
 
+    XXX: By experimentation zipkin has trouble recording traces with ids
+    larger than (2 ** 56) - 1
+
     @returns C{int}
     """
-    return random.randint(0, math.pow(2, 63) - 1)
+    return random.randint(0, (2 ** 56) - 1)
 
 
 class Trace(object):
