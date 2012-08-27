@@ -17,7 +17,7 @@ from __future__ import print_function
 import sys
 
 from twisted.internet import reactor
-from twisted.web.client import Agent, RedirectAgent
+from twisted.web.client import Agent
 
 from tryfer.tracers import push_tracer, DebugTracer
 
