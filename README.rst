@@ -48,7 +48,7 @@ Headers
 Examples
 ~~~~~~~~
 
-In the `examples/` subdirectory you'll find two python scripts (one client and
+In the ``examples/`` subdirectory you'll find two python scripts (one client and
 one server) which demonstrate the usage and expected output.
 
 Start by opening two terminals and going to the tryfer source directory.
