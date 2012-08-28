@@ -16,17 +16,17 @@ with the request.
 Client
 ~~~~~~
 
-The client side of this conversation is the `TracingAgent` which uses
-Twisted's composable HTTP/1.1 client architecture to record `CLIENT_SEND` and
-`CLIENT_RECV` annotations for your request.  In addition it'll record
-the full requested URL as a string annotation named `http.uri`.
+The client side of this conversation is the ``TracingAgent`` which uses
+Twisted's composable HTTP/1.1 client architecture to record ``CLIENT_SEND`` and
+``CLIENT_RECV`` annotations for your request.  In addition it'll record
+the full requested URL as a string annotation named ``http.uri``.
 
 Server
 ~~~~~~
 
 On the server you can wrap the root resource of your application in a
-`TracingWrapperResource` and it will automatically record `SERVER_RECV` and
-`SERVER_SEND` annotations.  It also provides access to the trace via the
+``TracingWrapperResource`` and it will automatically record ``SERVER_RECV`` and
+``SERVER_SEND`` annotations.  It also provides access to the trace via the
 request argument, so you can record extra annotations.
 
 ::
@@ -39,18 +39,17 @@ request argument, so you can record extra annotations.
 Headers
 ~~~~~~~
 
-`TracingAgent` and `TracingWrapperResource` support a subset of headers defined by Finagle_.
+``TracingAgent`` and ``TracingWrapperResource`` support a subset of headers defined by Finagle_.
 
-* `X-B3-TraceId` - hex encoded trace id.
-* `X-B3-SpanId` - hex encoded span id.
-* `X-B3-ParentSpanId` - hex encoded span id of parent span.
+* ``X-B3-TraceId`` - hex encoded trace id.
+* ``X-B3-SpanId`` - hex encoded span id.
+* ``X-B3-ParentSpanId`` - hex encoded span id of parent span.
 
 Examples
 ~~~~~~~~
 
- In the `examples/` subdirectory you'll find two python
-scripts (one client and one server) which demonstrate the usage and expected
-output.
+In the `examples/` subdirectory you'll find two python scripts (one client and
+one server) which demonstrate the usage and expected output.
 
 Start by opening two terminals and going to the tryfer source directory.
 
