@@ -47,7 +47,7 @@ class TracingAgentTests(TestCase):
     def test_no_parent(self, mock_trace):
         mock_trace.return_value.trace_id = 1
         mock_trace.return_value.span_id = 2
-        mock_trace.return_Value.parent_span_id = 3
+        mock_trace.return_value.parent_span_id = 3
 
         agent = TracingAgent(self.agent)
         agent.request('GET', 'https://google.com')
