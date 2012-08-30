@@ -27,12 +27,12 @@ class ITracer(Interface):
     handled by the ITracer provider.
     """
 
-    def record(trace, annotation):
+    def record(trace, *annotations):
         """
         Record an annotation for the specified trace.
 
         @param trace: An L{ITrace} provider.
-        @param annotation: An L{IAnnotation} provider.
+        @param annotations: One or more L{IAnnotation} providers.
 
         @returns C{None}
         """
@@ -60,13 +60,13 @@ class ITrace(Interface):
         @returns L{ITracITracee} provider
         """
 
-    def record(annotation):
+    def record(*annotations):
         """
-        Record an annotation for this trace.  This is the primary entry point
-        for associating annotations with traces.  It will delegate actual
-        recording to zero or more L{ITracer} providers.
+        Record one or more annotations for this trace.  This is the primary
+        entry point for associating annotations with traces.  It will delegate
+        actual recording to zero or more L{ITracer} providers.
 
-        @param annotation: An L{IAnnotation} provider.
+        @param annotations: One or more L{IAnnotation} providers.
 
         @returns C{None}
         """

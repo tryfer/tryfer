@@ -96,17 +96,18 @@ class Trace(object):
 
         return trace
 
-    def record(self, annotation):
+    def record(self, *annotations):
         # If this L{Trace} has an endpoint associated with it we will
         # attach that endpoint to the passed annotation if the
         # passed annotation has no endpoint.
-        if annotation.endpoint is None and self._endpoint is not None:
-            annotation.endpoint = self._endpoint
+        for annotation in annotations:
+            if annotation.endpoint is None and self._endpoint is not None:
+                annotation.endpoint = self._endpoint
 
         # Delegate the current trace (self) and annotation to all
         # tracers.
         for tracer in self._tracers:
-            tracer.record(self, annotation)
+            tracer.record(self, *annotations)
 
     def set_endpoint(self, endpoint):
         """
