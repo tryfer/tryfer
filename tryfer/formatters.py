@@ -26,7 +26,7 @@ def hex_str(n):
     return '%0.16x' % (n,)
 
 
-def json_formatter(trace, annotations):
+def json_formatter(trace, annotations, *json_args, **json_kwargs):
     json_trace = {
         'trace_id': hex_str(trace.trace_id),
         'span_id': hex_str(trace.span_id),
@@ -53,7 +53,7 @@ def json_formatter(trace, annotations):
 
         json_trace['annotations'].append(json_annotation)
 
-    return json.dumps([json_trace])
+    return json.dumps([json_trace], *json_args, **json_kwargs)
 
 
 def ipv4_to_long(ipv4):

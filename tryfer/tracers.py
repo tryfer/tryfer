@@ -110,13 +110,9 @@ class DebugTracer(object):
         self.destination = destination
 
     def record(self, trace, annotation):
-        self.destination.write('---\n')
-        self.destination.write(
-            ('Adding annotation for trace: {0.trace_id}:'
-             '{0.parent_span_id}:{0.span_id}:{0.name}\n').format(trace))
-        self.destination.write('\t')
-        self.destination.write(
-            '{0.name} = {0.value}:{0.annotation_type}\n'.format(annotation))
+        self.destination.write('--- Traces ---\n')
+        self.destination.write(json_formatter(trace, [annotation], indent=2))
+        self.destination.write('\n')
         self.destination.flush()
 
 
