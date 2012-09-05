@@ -58,7 +58,7 @@ class TraceTests(TestCase):
         annotation = Annotation.client_send(timestamp=0)
         t.record(annotation)
 
-        tracer.record.assert_called_with(t, annotation)
+        tracer.record.assert_called_with([(t, (annotation,))])
 
     def test_record_sets_annotation_endpoint(self):
         tracer = mock.Mock()
@@ -69,7 +69,7 @@ class TraceTests(TestCase):
         annotation = Annotation.client_send(timestamp=1)
         t.record(annotation)
 
-        tracer.record.assert_called_with(t, annotation)
+        tracer.record.assert_called_with([(t, (annotation,))])
 
         self.assertEqual(annotation.endpoint, web_endpoint)
 
@@ -98,7 +98,7 @@ class AnnotationTests(TestCase):
         self.assertEqual(a.name, 'cs')
         self.assertEqual(a.annotation_type, 'timestamp')
 
-    def test_cleint_recv(self):
+    def test_client_recv(self):
         a = Annotation.client_recv()
         self.assertEqual(a.value, 1000000)
         self.assertEqual(a.name, 'cr')

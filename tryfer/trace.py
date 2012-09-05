@@ -107,7 +107,7 @@ class Trace(object):
         # Delegate the current trace (self) and annotation to all
         # tracers.
         for tracer in self._tracers:
-            tracer.record(self, *annotations)
+            tracer.record([(self, annotations)])
 
     def set_endpoint(self, endpoint):
         """

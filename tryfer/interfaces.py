@@ -27,12 +27,15 @@ class ITracer(Interface):
     handled by the ITracer provider.
     """
 
-    def record(trace, *annotations):
+    def record(traces):
         """
-        Record an annotation for the specified trace.
+        Record one or more annotations.
 
-        @param trace: An L{ITrace} provider.
-        @param annotations: One or more L{IAnnotation} providers.
+        XXX: 'traces' isn't a very good name.
+
+        @param traces: A C{list} of 2-element C{tuple} objects whose first
+            element is an L{ITrace} provider whose second element is a C{list}
+            of L{IAnnotation} providers.
 
         @returns C{None}
         """
