@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+
 from StringIO import StringIO
 
 from collections import defaultdict
@@ -235,16 +237,19 @@ class RESTkinScribeTracer(object):
 
 class DebugTracer(object):
     """
-    XXX: Docstring & tests
+    Send annotations immediately to a file-like destination in JSON format.
+
+    All traces will be written immediately to the destination.
+
+    @param destination: A file-like object to write JSON formatted traces to.
     """
     implements(ITracer)
 
-    def __init__(self, destination):
-        self.destination = destination
+    def __init__(self, destination=None):
+        self.destination = destination or sys.stdout
 
-    def record(self, trace, *annotation):
-        self.destination.write('--- Traces ---\n')
-        self.destination.write(json_formatter(trace, [annotation], indent=2))
+    def record(self, traces):
+        self.destination.write(json_formatter(traces, indent=2))
         self.destination.write('\n')
         self.destination.flush()
 

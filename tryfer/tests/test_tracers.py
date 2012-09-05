@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+
 from StringIO import StringIO
 
 import json
@@ -32,7 +34,8 @@ from tryfer.tracers import (
     RawRESTkinHTTPTracer,
     RESTkinHTTPTracer,
     RawRESTkinScribeTracer,
-    RESTkinScribeTracer
+    RESTkinScribeTracer,
+    DebugTracer
 )
 
 from tryfer.interfaces import ITracer
@@ -427,3 +430,28 @@ class RESTkinScribeTracerTests(TestCase):
                   {'type': 'timestamp', 'value': 1, 'key': 'cs'},
                   {'type': 'timestamp', 'value': 2, 'key': 'cr'}
               ]}])
+
+
+class DebugTracerTests(TestCase):
+    def setUp(self):
+        self.destination = StringIO()
+        self.tracer = DebugTracer(self.destination)
+
+    def test_verifyObject(self):
+        verifyObject(ITracer, self.tracer)
+
+    def test_default_destination(self):
+        tracer = DebugTracer()
+        self.assertEqual(tracer.destination, sys.stdout)
+
+    def test_writes_trace(self):
+        t = Trace('test', 1, 2, tracers=[self.tracer])
+        t.record(Annotation.client_send(1))
+
+        self.assertEqual(
+            json.loads(self.destination.getvalue()),
+            [{'trace_id': '0000000000000001',
+              'span_id': '0000000000000002',
+              'name': 'test',
+              'annotations': [
+                  {'type': 'timestamp', 'value': 1, 'key': 'cs'}]}])
