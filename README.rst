@@ -11,7 +11,7 @@ HTTP Tracing
 
 Tryfer natively supports tracing of HTTP requests on both the client and the
 server, and relates these requests by passing a series of HTTP headers along
-with the request. 
+with the request.
 
 Client
 ~~~~~~
@@ -56,32 +56,41 @@ Start by opening two terminals and going to the tryfer source directory.
 In terminal #1 we can start the server using `twistd`::
 
     tryfer> twistd -n -y examples/tracing-server.tac
-    2012-08-24 16:24:11-0700 [-] Log opened.
-    2012-08-24 16:24:11-0700 [-] twistd 12.1.0 (/Users/dreid/.virtualenvs/tracing/bin/python 2.7.2) starting up.
-    2012-08-24 16:24:11-0700 [-] reactor class: twisted.internet.selectreactor.SelectReactor.
-    2012-08-24 16:24:11-0700 [-] Site starting on 8080
-    2012-08-24 16:24:11-0700 [-] Starting factory <twisted.web.server.Site instance at 0x102404950>
+    2012-09-05 13:22:02-0700 [-] Log opened.
+    2012-09-05 13:22:02-0700 [-] twistd 12.1.0 (/Users/dreid/.virtualenvs/tracing/bin/python 2.7.2) starting up.
+    2012-09-05 13:22:02-0700 [-] reactor class: twisted.internet.selectreactor.SelectReactor.
+    2012-09-05 13:22:02-0700 [-] Site starting on 8080
+    2012-09-05 13:22:02-0700 [-] Starting factory <twisted.web.server.Site instance at 0x100e78680>
 
 In terminal #2 we will run the client which will make a single HTTP request to
 the server::
 
-    tryfer> python examples/tracing-client.py GET http://localhost:8080/README.rst
-    --- Traces ---
+    tryfer> python examples/tracing-client.py
     [
       {
-        "span_id": "0022f51b5db738e4",
         "annotations": [
           {
             "type": "string",
-            "key": "http.uri",
-            "value": "http://localhost:8080/README.rst"
+            "value": "http://localhost:8080/README.rst",
+            "key": "http.uri"
+          },
+          {
+            "type": "timestamp",
+            "value": 1346876525257644,
+            "key": "cs"
+          },
+          {
+            "type": "timestamp",
+            "value": 1346876525270536,
+            "key": "cr"
           }
         ],
+        "trace_id": "00e5f721d19e25fa",
         "name": "GET",
-        "trace_id": "003934ca24b59dc8"
+        "span_id": "007fe79f2c63db97"
       }
     ]
-    <snip...>
+    Received 200 response.
 
 
 Here we see some output from the DebugTracer which simply prints all
@@ -90,10 +99,10 @@ our first annotation which is the http.uri we are requesting.
 
 Now in terminal #1 we should see the following::
 
-    --- Traces ---
+    2012-09-05 13:22:05-0700 [HTTPChannel,0,127.0.0.1] 127.0.0.1 - - [05/Sep/2012:20:22:05 +0000] "GET /README.rst HTTP/1.1" 200 4829 "-" "-"
+    2012-09-05 13:22:05-0700 [EndAnnotationTracer] Sending trace: (64729494289524218, 36001992872811415) w/ (<tryfer.trace.Annotation object at 0x100e7bb90>,)
     [
       {
-        "span_id": "0022f51b5db738e4",
         "annotations": [
           {
             "host": {
@@ -102,20 +111,9 @@ Now in terminal #1 we should see the following::
               "port": 8080
             },
             "type": "timestamp",
-            "key": "sr",
-            "value": 1345851176200421
-          }
-        ],
-        "name": "GET",
-        "trace_id": "003934ca24b59dc8"
-      }
-    ]
-    2012-08-24 16:32:56-0700 [HTTPChannel,0,127.0.0.1] 127.0.0.1 - - [24/Aug/2012:23:32:55 +0000] "GET /README.rst HTTP/1.1" 200 2716 "-" "-"
-    --- Traces ---
-    [
-      {
-        "span_id": "0022f51b5db738e4",
-        "annotations": [
+            "value": 1346876525268525,
+            "key": "sr"
+          },
           {
             "host": {
               "service_name": "tracing-server-example",
@@ -123,12 +121,13 @@ Now in terminal #1 we should see the following::
               "port": 8080
             },
             "type": "timestamp",
-            "key": "ss",
-            "value": 1345851176202285
+            "value": 1346876525270173,
+            "key": "ss"
           }
         ],
+        "trace_id": "00e5f721d19e25fa",
         "name": "GET",
-        "trace_id": "003934ca24b59dc8"
+        "span_id": "007fe79f2c63db97"
       }
     ]
 
