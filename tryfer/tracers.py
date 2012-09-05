@@ -62,7 +62,8 @@ class EndAnnotationTracer(object):
 
                     del self._annotations_for_trace[trace_key]
 
-                    log.msg(format="Sending trace: %(trace_key)s w/ %(annotations)s",
+                    log.msg(format=("Sending trace: %(trace_key)s w/"
+                                    " %(annotations)s"),
                             system=self.__class__.__name__,
                             trace_key=trace_key,
                             annotations=annotations)
@@ -197,8 +198,8 @@ class RawRESTkinScribeTracer(object):
 
     def record(self, traces):
         d = self._scribe_client.log(
-                self._category,
-                [json_formatter(traces)])
+            self._category,
+            [json_formatter(traces)])
         d.addErrback(
             log.err,
             "Error sending trace to scribe category: {0}".format(
