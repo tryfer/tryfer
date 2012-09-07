@@ -19,14 +19,14 @@ import sys
 from twisted.internet import reactor
 from twisted.web.client import Agent
 
-from tryfer.tracers import push_tracer, DebugTracer
+from tryfer.tracers import push_tracer, DebugTracer, EndAnnotationTracer
 
 from tryfer.http import TracingAgent
 
 
 if __name__ == '__main__':
     # Set up our DebugTracer to print json to stdout.
-    push_tracer(DebugTracer(sys.stdout))
+    push_tracer(EndAnnotationTracer(DebugTracer(sys.stdout)))
 
     def _do():
         # The Agent API is composable so we wrap an Agent in a TracingAgent

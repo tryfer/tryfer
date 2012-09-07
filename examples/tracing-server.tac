@@ -23,10 +23,10 @@ from twisted.application import internet, service
 from twisted.web import server, static
 
 from tryfer.http import TracingWrapperResource
-from tryfer.tracers import push_tracer, DebugTracer
+from tryfer.tracers import push_tracer, DebugTracer, EndAnnotationTracer
 
 # Add the debug tracer.
-push_tracer(DebugTracer(sys.stdout))
+push_tracer(EndAnnotationTracer(DebugTracer(sys.stdout)))
 
 # Create an application
 application = service.Application("tracing-server")
