@@ -97,7 +97,7 @@ class RawZipkinTracer(object):
             [base64_thrift_formatter(trace, annotations)
              for (trace, annotations) in traces])
 
-        d.adderrback(
+        d.addErrback(
             log.err,
             "Error sending trace to scribe category: {0}".format(
                 self._category))

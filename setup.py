@@ -15,7 +15,7 @@ def getPackages(base):
 
 setup(
     name='tryfer',
-    version='0.1',
+    version='0.1.1',
     description='Twisted Zipkin Tracing Library',
     classifiers=[
         'Development Status :: 4 - Beta',
