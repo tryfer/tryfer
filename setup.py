@@ -1,6 +1,17 @@
+import os
 from setuptools import setup
 
-from twisted.python.dist import getPackages
+
+def getPackages(base):
+    packages = []
+
+    def visit(arg, directory, files):
+        if '__init__.py' in files:
+            packages.append(directory.replace('/', '.'))
+
+    os.path.walk(base, visit, None)
+
+    return packages
 
 setup(
     name='tryfer',
@@ -16,5 +27,9 @@ setup(
     url='https://github.com/racker/tryfer',
 
     packages=getPackages('tryfer'),
-    install_requires=['Twisted', 'thrift', 'scrivener'],
+    install_requires=[
+        'Twisted >= 12.0.0',
+        'thrift == 0.8.0',
+        'scrivener == 0.2'
+    ],
 )

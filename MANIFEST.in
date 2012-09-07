@@ -1,0 +1,4 @@
+include README.rst LICENSE.txt
+recursive-include tryfer *
+recursive-include twisted *
+global-exclude *.pyc dropin.cache
