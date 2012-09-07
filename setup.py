@@ -23,9 +23,11 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Framework :: Twisted'
     ],
+    maintainer='David Reid',
+    maintainer_email='david.reid@rackspace.com',
     license='APL2',
     url='https://github.com/racker/tryfer',
-
+    long_description=open('README.rst').read(),
     packages=getPackages('tryfer'),
     install_requires=[
         'Twisted >= 12.0.0',
