@@ -39,7 +39,7 @@ class TracingAgent(object):
         self._parent_trace = parent_trace
         self._endpoint = endpoint
 
-    def request(self, method, url, headers=None, bodyProducer=None):
+    def request(self, method, uri, headers=None, bodyProducer=None):
         """
         Send a client request following HTTP redirects.
 
@@ -73,17 +73,20 @@ class TracingAgent(object):
 
         # Similar to the headers above we use the annotation 'http.uri' for
         # because that is the standard set forth in the finagle http Codec.
-        trace.record(Annotation.string('http.uri', url))
+        trace.record(Annotation.string('http.uri', uri))
         trace.record(Annotation.client_send())
 
         def _finished(resp):
             # TODO: It may be advantageous here to return a wrapped response
             # whose deliverBody can wrap it's protocol and record when the
             # application has finished reading the contents.
+            trace.record(Annotation.string(
+                'http.responsecode',
+                '{0} {1}'.format(resp.code, resp.phrase)))
             trace.record(Annotation.client_recv())
             return resp
 
-        d = self._agent.request(method, url, headers, bodyProducer)
+        d = self._agent.request(method, uri, headers, bodyProducer)
         d.addBoth(_finished)
 
         return d
@@ -127,6 +130,7 @@ class TracingWrapperResource(object):
         # Construct and endpoint from the requested host and port and the
         # passed service name.
         host = request.getHost()
+
         endpoint = Endpoint(host.host, host.port, self._service_name)
 
         # Construct the trace using the headers X-B3-* headers that the
