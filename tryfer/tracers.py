@@ -294,6 +294,10 @@ class BufferingTracer(object):
     Buffer traces and defer recording until L{max_traces} have been received or
     L{max_idle_time} has elapsed since the last trace was recorded.
 
+    When L{max_traces} is exceeded, all buffered traces will be flushed.
+    This means that for a max_traces of 5 if 10 traces are received, all
+    10 traces will be flushed to the next tracer.
+
     @param tracer: An L{ITracer} provider to record bufferred traces to.
 
     @param max_traces: C{int} of the number of traces to buffer before
@@ -314,29 +318,38 @@ class BufferingTracer(object):
         self._reactor = _reactor or reactor
         self._tracer = tracer
         self._buffer = []
-        self._dc = None
+        self._idle_dc = None
+        self._flush_dc = None
 
     def _reset(self):
-        if self._dc and self._dc.active():
-            self._dc.reset(self._max_idle_time)
+        if self._idle_dc and self._idle_dc.active():
+            self._idle_dc.reset(self._max_idle_time)
         else:
-            self._dc = self._reactor.callLater(
+            self._idle_dc = self._reactor.callLater(
                 self._max_idle_time, self._flush)
 
     def _flush(self):
-        if self._dc and self._dc.active():
-            self._dc.cancel()
+        if self._idle_dc and self._idle_dc.active():
+            self._idle_dc.cancel()
+
+        if self._flush_dc is not None:
+            self._flush_dc = None
 
         flushable = self._buffer
         self._buffer = []
-        self._tracer.record(flushable)
+
+        if flushable:
+            self._tracer.record(flushable)
 
     def record(self, traces):
         self._buffer.extend(traces)
 
-        if len(self._buffer) > self._max_traces:
-            # The buffer is full, flush in the next _reactor iteration.
-            self._reactor.callLater(0, self._flush)
+        if len(self._buffer) >= self._max_traces:
+            # The buffer is full, flush in the next _reactor iteration.  If
+            # we have not already scheduled a flush to happen.
+            if self._flush_dc is None:
+                self._flush_dc = self._reactor.callLater(0, self._flush)
+
         else:
             # The buffer is not full, reset the idle timer to DelayedCall to
             # flush after 10 seconds.

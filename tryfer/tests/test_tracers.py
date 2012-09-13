@@ -445,7 +445,8 @@ class BufferingTracerTests(TestCase):
         mockTrace = mock.Mock()
         mockAnnotation = mock.Mock()
 
-        traces = [(mockTrace, [mockAnnotation]) for x in xrange(0, 10)]
+        traces = [(mockTrace, [mockAnnotation]) for x in xrange(5)]
+
         self.tracer.record(traces)
 
         self.clock.advance(1)
@@ -499,6 +500,27 @@ class BufferingTracerTests(TestCase):
         tracer.record([(mock.Mock(), [mock.Mock()])])
         self.assertEqual(mock_reactor.callLater.call_count, 1)
 
+    def test_timer_reset_after_flush(self):
+        trace = (mock.Mock(), [mock.Mock()])
+
+        self.tracer.record([trace for x in xrange(5)])
+        self.clock.advance(1)
+        self.tracer.record([trace])
+        self.clock.advance(1)
+
+        self.mock_tracer.record.assert_called_once_with(
+            [trace for x in xrange(5)])
+
+    def test_complete_buffer_flushed(self):
+        trace = (mock.Mock(), [mock.Mock()])
+        self.tracer.record([trace for x in xrange(5)])
+        self.tracer.record([trace for x in xrange(3)])
+
+        self.clock.advance(1)
+
+        self.mock_tracer.record.assert_called_once_with(
+            [trace for x in xrange(8)])
+
 
 class _StandardTracerTestMixin(object):
     clock = Clock()
@@ -515,12 +537,14 @@ class _StandardTracerTestMixin(object):
         self.assertEqual(self.record_function.call_count, 0)
 
     def test_traces_bufferred_until_max_traces(self):
-        completed_trace = (Trace('completed'), [Annotation.client_send(1),
-                                                Annotation.client_recv(2)])
-        self.tracer.record([completed_trace])
-        self.assertEqual(self.record_function.call_count, 0)
+        completed_traces = [
+            (Trace('completed'), [Annotation.client_send(1),
+                                  Annotation.client_recv(2)])
+            for x in xrange(50)]
 
-        self.tracer.record([completed_trace for x in xrange(50)])
+        self.tracer.record(completed_traces[:10])
+        self.assertEqual(self.record_function.call_count, 0)
+        self.tracer.record(completed_traces[10:])
 
         self.clock.advance(1)
 
