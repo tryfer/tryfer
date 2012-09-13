@@ -116,12 +116,23 @@ class ZipkinTracer(object):
     @param category: See L{RawZipkinTracer}
 
     @param end_annotations: See L{EndAnnotationTracer}
+
+    @param max_traces: See L{BufferingTracer}
+
+    @param max_idle_time: See L{BufferingTracer}
+
+    @param reactor: See L{BufferingTracer}
     """
     implements(ITracer)
 
-    def __init__(self, scribe_client, category=None, end_annotations=None):
+    def __init__(self, scribe_client, category=None, end_annotations=None,
+                 max_traces=50, max_idle_time=10, reactor=None):
         self._tracer = EndAnnotationTracer(
-            RawZipkinTracer(scribe_client, category),
+            BufferingTracer(
+                RawZipkinTracer(scribe_client, category),
+                max_traces=max_traces,
+                max_idle_time=max_idle_time,
+                reactor=reactor),
             end_annotations=end_annotations
         )
 
@@ -169,12 +180,23 @@ class RESTkinHTTPTracer(object):
     @param trace_url: See L{RESTkinHTTPTracer}
 
     @param end_annotations: See L{EndAnnotationTracer}
+
+    @param max_traces: See L{BufferingTracer}
+
+    @param max_idle_time: See L{BufferingTracer}
+
+    @param reactor: See L{BufferingTracer}
     """
     implements(ITracer)
 
-    def __init__(self, agent, trace_url, end_annotations=None):
+    def __init__(self, agent, trace_url, end_annotations=None,
+                 max_traces=50, max_idle_time=10, reactor=None):
         self._tracer = EndAnnotationTracer(
-            RawRESTkinHTTPTracer(agent, trace_url),
+            BufferingTracer(
+                RawRESTkinHTTPTracer(agent, trace_url),
+                max_traces=max_traces,
+                max_idle_time=max_idle_time,
+                reactor=reactor),
             end_annotations=end_annotations
         )
 
@@ -213,7 +235,7 @@ class RESTkinScribeTracer(object):
     Send annotations to RESTkin as JSON objects over Scribe.
 
     This is equivalent to
-    EndAnnotationTracer(RawRESTkinScribeTracer(scribe_client)).
+    EndAnnotationTracer(BufferingTracer(RawRESTkinScribeTracer(scribe_client))).
 
     This implementation mostly exists for convenience.
 
@@ -222,12 +244,23 @@ class RESTkinScribeTracer(object):
     @param category: See L{RawRESTkinScribeTracer}
 
     @param end_annotations: See L{EndAnnotationTracer}
+
+    @param max_traces: See L{BufferingTracer}
+
+    @param max_idle_time: See L{BufferingTracer}
+
+    @param reactor: See L{BufferingTracer}
     """
     implements(ITracer)
 
-    def __init__(self, scribe_client, category=None, end_annotations=None):
+    def __init__(self, scribe_client, category=None, end_annotations=None,
+                 max_traces=50, max_idle_time=10, reactor=None):
         self._tracer = EndAnnotationTracer(
-            RawRESTkinScribeTracer(scribe_client, category),
+            BufferingTracer(
+                RawRESTkinScribeTracer(scribe_client, category),
+                max_traces=max_traces,
+                max_idle_time=max_idle_time,
+                reactor=reactor),
             end_annotations=end_annotations
         )
 
@@ -252,6 +285,63 @@ class DebugTracer(object):
         self.destination.write(json_formatter(traces, indent=2))
         self.destination.write('\n')
         self.destination.flush()
+
+
+class BufferingTracer(object):
+    """
+    Buffer traces and defer recording until L{max_traces} have been received or
+    L{max_idle_time} has elapsed since the last trace was recorded.
+
+    @param tracer: An L{ITracer} provider to record bufferred traces to.
+
+    @param max_traces: C{int} of the number of traces to buffer before
+        recording occurs.  Default 50.
+
+    @param max_idle_time: C{int} of number of seconds since the last trace was
+        received to send all bufferred traces.  Default 10.
+
+    @param reactor: An L{IReactorTime} provider used to defer buffering to a
+        future reactor iteration.
+    """
+    implements(ITracer)
+
+    def __init__(self, tracer, max_traces=50, max_idle_time=10, reactor=None):
+        if reactor is None:
+            from twisted.internet import reactor
+            reactor = reactor
+
+        self._max_traces = max_traces
+        self._max_idle_time = max_idle_time
+
+        self._reactor = reactor
+        self._tracer = tracer
+        self._buffer = []
+        self._dc = None
+
+    def _reset(self):
+        if self._dc and self._dc.active():
+            self._dc.reset(self._max_idle_time)
+        else:
+            self._dc = self._reactor.callLater(self._max_idle_time, self._flush)
+
+    def _flush(self):
+        if self._dc and self._dc.active():
+            self._dc.cancel()
+
+        flushable = self._buffer
+        self._buffer = []
+        self._tracer.record(flushable)
+
+    def record(self, traces):
+        self._buffer.extend(traces)
+
+        if len(self._buffer) > self._max_traces:
+            # The buffer is full, flush in the next reactor iteration.
+            self._reactor.callLater(0, self._flush)
+        else:
+            # The buffer is not full, reset the idle timer to DelayedCall to
+            # flush after 10 seconds.
+            self._reset()
 
 
 _globalTracers = []
