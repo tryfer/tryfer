@@ -107,7 +107,8 @@ class ZipkinTracer(object):
     """
     Send annotations to Zipkin as Base64 Encoded thrift objects over scribe.
 
-    This is equivalent to EndAnnotationTracer(RawZipkinTracer(scribe_client)).
+    This is equivalent to EndAnnotationTracer(
+    BufferingTracer(RawZipkinTracer(scribe_client))).
 
     This implementation mostly exists for convenience.
 
@@ -171,7 +172,8 @@ class RESTkinHTTPTracer(object):
     """
     Send annotations to RESTkin over HTTP as JSON objects.
 
-    This is equivalent to EndAnnotationTracer(RawZipkinTracer(scribe_client)).
+    This is equivalent to EndAnnotationTracer(
+    BufferingTracer(RawZipkinTracer(scribe_client))).
 
     This implementation mostly exists for convenience.
 
@@ -234,9 +236,8 @@ class RESTkinScribeTracer(object):
     """
     Send annotations to RESTkin as JSON objects over Scribe.
 
-    This is equivalent to
-    EndAnnotationTracer(
-        BufferingTracer(RawRESTkinScribeTracer(scribe_client))).
+    This is equivalent to EndAnnotationTracer(
+    BufferingTracer(RawRESTkinScribeTracer(scribe_client))).
 
     This implementation mostly exists for convenience.
 
