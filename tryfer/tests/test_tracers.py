@@ -439,7 +439,7 @@ class BufferingTracerTests(TestCase):
     def test_buffers_traces(self):
         self.tracer.record([(mock.Mock(), [mock.Mock()])])
 
-        self.assertEqual(self.mock_tracer.call_count, 0)
+        self.assertEqual(self.mock_tracer.record.call_count, 0)
 
     def test_flushes_buffer_on_max_traces(self):
         mockTrace = mock.Mock()
