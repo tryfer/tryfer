@@ -235,7 +235,8 @@ class RESTkinScribeTracer(object):
     Send annotations to RESTkin as JSON objects over Scribe.
 
     This is equivalent to
-    EndAnnotationTracer(BufferingTracer(RawRESTkinScribeTracer(scribe_client))).
+    EndAnnotationTracer(
+        BufferingTracer(RawRESTkinScribeTracer(scribe_client))).
 
     This implementation mostly exists for convenience.
 
@@ -322,7 +323,8 @@ class BufferingTracer(object):
         if self._dc and self._dc.active():
             self._dc.reset(self._max_idle_time)
         else:
-            self._dc = self._reactor.callLater(self._max_idle_time, self._flush)
+            self._dc = self._reactor.callLater(
+                self._max_idle_time, self._flush)
 
     def _flush(self):
         if self._dc and self._dc.active():
