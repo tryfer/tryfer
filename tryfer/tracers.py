@@ -21,7 +21,7 @@ from collections import defaultdict
 from zope.interface import implements
 
 from twisted.python import log
-
+from twisted.internet import reactor
 from twisted.web.client import FileBodyProducer
 from twisted.web.http_headers import Headers
 
@@ -122,18 +122,18 @@ class ZipkinTracer(object):
 
     @param max_idle_time: See L{BufferingTracer}
 
-    @param reactor: See L{BufferingTracer}
+    @param _reactor: See L{BufferingTracer}
     """
     implements(ITracer)
 
     def __init__(self, scribe_client, category=None, end_annotations=None,
-                 max_traces=50, max_idle_time=10, reactor=None):
+                 max_traces=50, max_idle_time=10, _reactor=None):
         self._tracer = EndAnnotationTracer(
             BufferingTracer(
                 RawZipkinTracer(scribe_client, category),
                 max_traces=max_traces,
                 max_idle_time=max_idle_time,
-                reactor=reactor),
+                _reactor=_reactor),
             end_annotations=end_annotations
         )
 
@@ -187,18 +187,18 @@ class RESTkinHTTPTracer(object):
 
     @param max_idle_time: See L{BufferingTracer}
 
-    @param reactor: See L{BufferingTracer}
+    @param _reactor: See L{BufferingTracer}
     """
     implements(ITracer)
 
     def __init__(self, agent, trace_url, end_annotations=None,
-                 max_traces=50, max_idle_time=10, reactor=None):
+                 max_traces=50, max_idle_time=10, _reactor=None):
         self._tracer = EndAnnotationTracer(
             BufferingTracer(
                 RawRESTkinHTTPTracer(agent, trace_url),
                 max_traces=max_traces,
                 max_idle_time=max_idle_time,
-                reactor=reactor),
+                _reactor=_reactor),
             end_annotations=end_annotations
         )
 
@@ -251,18 +251,18 @@ class RESTkinScribeTracer(object):
 
     @param max_idle_time: See L{BufferingTracer}
 
-    @param reactor: See L{BufferingTracer}
+    @param _reactor: See L{BufferingTracer}
     """
     implements(ITracer)
 
     def __init__(self, scribe_client, category=None, end_annotations=None,
-                 max_traces=50, max_idle_time=10, reactor=None):
+                 max_traces=50, max_idle_time=10, _reactor=None):
         self._tracer = EndAnnotationTracer(
             BufferingTracer(
                 RawRESTkinScribeTracer(scribe_client, category),
                 max_traces=max_traces,
                 max_idle_time=max_idle_time,
-                reactor=reactor),
+                _reactor=_reactor),
             end_annotations=end_annotations
         )
 
@@ -302,20 +302,16 @@ class BufferingTracer(object):
     @param max_idle_time: C{int} of number of seconds since the last trace was
         received to send all bufferred traces.  Default 10.
 
-    @param reactor: An L{IReactorTime} provider used to defer buffering to a
+    @param _reactor: An L{I_reactorTime} provider used to defer buffering to a
         future reactor iteration.
     """
     implements(ITracer)
 
-    def __init__(self, tracer, max_traces=50, max_idle_time=10, reactor=None):
-        if reactor is None:
-            from twisted.internet import reactor
-            reactor = reactor
-
+    def __init__(self, tracer, max_traces=50, max_idle_time=10, _reactor=None):
         self._max_traces = max_traces
         self._max_idle_time = max_idle_time
 
-        self._reactor = reactor
+        self._reactor = _reactor or reactor
         self._tracer = tracer
         self._buffer = []
         self._dc = None
@@ -339,7 +335,7 @@ class BufferingTracer(object):
         self._buffer.extend(traces)
 
         if len(self._buffer) > self._max_traces:
-            # The buffer is full, flush in the next reactor iteration.
+            # The buffer is full, flush in the next _reactor iteration.
             self._reactor.callLater(0, self._flush)
         else:
             # The buffer is not full, reset the idle timer to DelayedCall to

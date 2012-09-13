@@ -430,7 +430,7 @@ class BufferingTracerTests(TestCase):
         self.clock = Clock()
         self.tracer = BufferingTracer(
             self.mock_tracer,
-            reactor=self.clock,
+            _reactor=self.clock,
             max_traces=5)
 
     def test_verifyObject(self):
@@ -493,8 +493,11 @@ class BufferingTracerTests(TestCase):
 
         self.mock_tracer.record.assert_called_once_with(traces + traces)
 
-    def test_default_reactor(self):
-        BufferingTracer(mock.Mock())
+    @mock.patch('tryfer.tracers.reactor')
+    def test_default_reactor(self, mock_reactor):
+        tracer = BufferingTracer(mock.Mock())
+        tracer.record([(mock.Mock(), [mock.Mock()])])
+        self.assertEqual(mock_reactor.callLater.call_count, 1)
 
 
 class _StandardTracerTestMixin(object):
@@ -539,7 +542,7 @@ class RESTkinScribeTracerTests(TestCase, _StandardTracerTestMixin):
     def setUp(self):
         self.scribe = mock.Mock()
         self.scribe.log.return_value = succeed(True)
-        self.tracer = RESTkinScribeTracer(self.scribe, reactor=self.clock)
+        self.tracer = RESTkinScribeTracer(self.scribe, _reactor=self.clock)
         self.record_function = self.scribe.log
 
 
@@ -550,12 +553,12 @@ class RESTkinHTTPTracerTests(TestCase, _StandardTracerTestMixin):
         self.record_function = self.agent.request
 
         self.tracer = RESTkinHTTPTracer(
-            self.agent, 'http://trace.io/', reactor=self.clock)
+            self.agent, 'http://trace.io/', _reactor=self.clock)
 
 
 class ZipkinTracerTests(TestCase, _StandardTracerTestMixin):
     def setUp(self):
         self.scribe = mock.Mock()
         self.scribe.log.return_value = succeed(True)
-        self.tracer = ZipkinTracer(self.scribe, reactor=self.clock)
+        self.tracer = ZipkinTracer(self.scribe, _reactor=self.clock)
         self.record_function = self.scribe.log
