@@ -543,6 +543,8 @@ class _StandardTracerTestMixin(object):
             for x in xrange(50)]
 
         self.tracer.record(completed_traces[:10])
+        self.clock.advance(1)
+
         self.assertEqual(self.record_function.call_count, 0)
         self.tracer.record(completed_traces[10:])
 
