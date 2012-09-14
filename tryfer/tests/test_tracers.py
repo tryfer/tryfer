@@ -23,6 +23,10 @@ import mock
 from zope.interface.verify import verifyObject
 
 from twisted.trial.unittest import TestCase
+
+from twisted.internet.task import Clock
+from twisted.internet.defer import succeed
+
 from twisted.web.http_headers import Headers
 from twisted.web.test.test_webclient import FileConsumer
 
@@ -35,7 +39,8 @@ from tryfer.tracers import (
     RESTkinHTTPTracer,
     RawRESTkinScribeTracer,
     RESTkinScribeTracer,
-    DebugTracer
+    DebugTracer,
+    BufferingTracer
 )
 
 from tryfer.interfaces import ITracer
@@ -394,44 +399,6 @@ class RawRESTkinScribeTracerTests(TestCase):
               ]}])
 
 
-class RESTkinScribeTracerTests(TestCase):
-    def setUp(self):
-        self.scribe = mock.Mock()
-
-        self.tracer = RESTkinScribeTracer(self.scribe)
-        self.trace = Trace('test', 1, 2, tracers=[self.tracer])
-
-    def test_verifyObject(self):
-        verifyObject(ITracer, self.tracer)
-
-    def test_doesnt_post_immediately(self):
-        self.trace.record(Annotation.client_send(1))
-
-        self.assertEqual(self.scribe.log.call_count, 0)
-
-    def test_posts_at_end(self):
-        self.trace.record(Annotation.client_send(1))
-        self.trace.record(Annotation.client_recv(2))
-
-        self.assertEqual(self.scribe.log.call_count, 1)
-
-        args = self.scribe.log.mock_calls[0][1]
-
-        self.assertEqual('restkin', args[0])
-        entries = args[1]
-        self.assertEqual(len(entries), 1)
-
-        self.assertEqual(
-            json.loads(entries[0]),
-            [{'trace_id': '0000000000000001',
-              'span_id': '0000000000000002',
-              'name': 'test',
-              'annotations': [
-                  {'type': 'timestamp', 'value': 1, 'key': 'cs'},
-                  {'type': 'timestamp', 'value': 2, 'key': 'cr'}
-              ]}])
-
-
 class DebugTracerTests(TestCase):
     def setUp(self):
         self.destination = StringIO()
@@ -455,3 +422,169 @@ class DebugTracerTests(TestCase):
               'name': 'test',
               'annotations': [
                   {'type': 'timestamp', 'value': 1, 'key': 'cs'}]}])
+
+
+class BufferingTracerTests(TestCase):
+    def setUp(self):
+        self.mock_tracer = mock.Mock()
+        self.clock = Clock()
+        self.tracer = BufferingTracer(
+            self.mock_tracer,
+            _reactor=self.clock,
+            max_traces=5)
+
+    def test_verifyObject(self):
+        verifyObject(ITracer, self.tracer)
+
+    def test_buffers_traces(self):
+        self.tracer.record([(mock.Mock(), [mock.Mock()])])
+
+        self.assertEqual(self.mock_tracer.record.call_count, 0)
+
+    def test_flushes_buffer_on_max_traces(self):
+        mockTrace = mock.Mock()
+        mockAnnotation = mock.Mock()
+
+        traces = [(mockTrace, [mockAnnotation]) for x in xrange(5)]
+
+        self.tracer.record(traces)
+
+        self.clock.advance(1)
+
+        self.mock_tracer.record.assert_called_once_with(traces)
+
+    def test_flushes_buffer_on_max_idle_time(self):
+        mockTrace = mock.Mock()
+        mockAnnotation = mock.Mock()
+
+        traces = [(mockTrace, [mockAnnotation])]
+
+        self.tracer.record(traces)
+
+        self.clock.advance(10)
+
+        self.mock_tracer.record.assert_called_once_with(traces)
+
+    def test_new_traces_extend_idle_time(self):
+        mockTrace = mock.Mock()
+        mockAnnotation = mock.Mock()
+
+        traces = [(mockTrace, [mockAnnotation])]
+
+        # Record one trace and advance the clock by 9 seconds.
+        self.tracer.record(traces)
+
+        self.clock.advance(9)
+
+        # We have not reached the idle time so nothing has been traced
+        self.assertEqual(self.mock_tracer.record.call_count, 0)
+
+        # Record a new trace which should reset the idle time.
+        self.tracer.record(traces)
+
+        # Advance the clock by 5 seconds.  We have now exceeded 10 seconds
+        # since the original trace but we should not flush the buffer.
+        self.clock.advance(5)
+
+        self.assertEqual(self.mock_tracer.record.call_count, 0)
+
+        # Advance the clock another 5 seconds.  And assert that both recorded
+        # traces have been flushed from the buffer.
+        self.clock.advance(5)
+
+        self.mock_tracer.record.assert_called_once_with(traces + traces)
+
+    @mock.patch('tryfer.tracers.reactor')
+    def test_default_reactor(self, mock_reactor):
+        tracer = BufferingTracer(mock.Mock())
+        tracer.record([(mock.Mock(), [mock.Mock()])])
+        self.assertEqual(mock_reactor.callLater.call_count, 1)
+
+    def test_timer_reset_after_flush(self):
+        trace = (mock.Mock(), [mock.Mock()])
+
+        self.tracer.record([trace for x in xrange(5)])
+        self.clock.advance(1)
+        self.tracer.record([trace])
+        self.clock.advance(1)
+
+        self.mock_tracer.record.assert_called_once_with(
+            [trace for x in xrange(5)])
+
+    def test_complete_buffer_flushed(self):
+        trace = (mock.Mock(), [mock.Mock()])
+        self.tracer.record([trace for x in xrange(5)])
+        self.tracer.record([trace for x in xrange(3)])
+
+        self.clock.advance(1)
+
+        self.mock_tracer.record.assert_called_once_with(
+            [trace for x in xrange(8)])
+
+
+class _StandardTracerTestMixin(object):
+    clock = Clock()
+
+    def recorded_traces(self):
+        raise NotImplementedError()
+
+    def test_verifyObject(self):
+        verifyObject(ITracer, self.tracer)
+
+    def test_no_unfinished_traces(self):
+        unfinished_trace = (Trace('unfinished'), [Annotation.client_send(1)])
+        self.tracer.record([unfinished_trace])
+        self.assertEqual(self.record_function.call_count, 0)
+
+    def test_traces_bufferred_until_max_traces(self):
+        completed_traces = [
+            (Trace('completed'), [Annotation.client_send(1),
+                                  Annotation.client_recv(2)])
+            for x in xrange(50)]
+
+        self.tracer.record(completed_traces[:10])
+        self.clock.advance(1)
+
+        self.assertEqual(self.record_function.call_count, 0)
+        self.tracer.record(completed_traces[10:])
+
+        self.clock.advance(1)
+
+        self.assertEqual(self.record_function.call_count, 1)
+
+    def test_traces_buffered_until_max_idle_time(self):
+        completed_trace = (Trace('completed'), [Annotation.client_send(1),
+                                                Annotation.client_recv(2)])
+
+        self.tracer.record([completed_trace])
+        self.assertEqual(self.record_function.call_count, 0)
+
+        self.clock.advance(10)
+
+        self.assertEqual(self.record_function.call_count, 1)
+
+
+class RESTkinScribeTracerTests(TestCase, _StandardTracerTestMixin):
+    def setUp(self):
+        self.scribe = mock.Mock()
+        self.scribe.log.return_value = succeed(True)
+        self.tracer = RESTkinScribeTracer(self.scribe, _reactor=self.clock)
+        self.record_function = self.scribe.log
+
+
+class RESTkinHTTPTracerTests(TestCase, _StandardTracerTestMixin):
+    def setUp(self):
+        self.agent = mock.Mock()
+        self.agent.request.return_value = succeed(mock.Mock())
+        self.record_function = self.agent.request
+
+        self.tracer = RESTkinHTTPTracer(
+            self.agent, 'http://trace.io/', _reactor=self.clock)
+
+
+class ZipkinTracerTests(TestCase, _StandardTracerTestMixin):
+    def setUp(self):
+        self.scribe = mock.Mock()
+        self.scribe.log.return_value = succeed(True)
+        self.tracer = ZipkinTracer(self.scribe, _reactor=self.clock)
+        self.record_function = self.scribe.log
