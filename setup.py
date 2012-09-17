@@ -1,21 +1,8 @@
-import os
-from setuptools import setup
-
-
-def getPackages(base):
-    packages = []
-
-    def visit(arg, directory, files):
-        if '__init__.py' in files:
-            packages.append(directory.replace('/', '.'))
-
-    os.path.walk(base, visit, None)
-
-    return packages
+from setuptools import setup, find_packages
 
 setup(
     name='tryfer',
-    version='0.1.1',
+    version='0.2.0',
     description='Twisted Zipkin Tracing Library',
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -28,7 +15,7 @@ setup(
     license='APL2',
     url='https://github.com/racker/tryfer',
     long_description=open('README.rst').read(),
-    packages=getPackages('tryfer'),
+    packages=find_packages('.'),
     install_requires=[
         'Twisted >= 12.0.0',
         'thrift == 0.8.0',
