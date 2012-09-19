@@ -20,7 +20,6 @@ from collections import defaultdict
 
 from zope.interface import implements
 
-from twisted.python import log
 from twisted.internet import reactor
 from twisted.web.client import FileBodyProducer
 from twisted.web.http_headers import Headers
