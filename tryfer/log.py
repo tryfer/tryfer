@@ -11,12 +11,6 @@ def set_debugging(on=True):
 def debug(*args, **kwargs):
     if _debugging:
         kwargs['logLevel'] = 'DEBUG'
-        if 'format' in kwargs:
-            kwargs['format'] = '%(logLevel)s: ' + kwargs['format']
-
-        else:
-            args[0] = '%s: %s' % (kwargs['logLevel'], args[0])
-
         log.msg(*args, **kwargs)
 
 
