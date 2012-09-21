@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='tryfer',
-    version='0.2.0',
+    version='0.2.1',
     description='Twisted Zipkin Tracing Library',
     classifiers=[
         'Development Status :: 4 - Beta',
