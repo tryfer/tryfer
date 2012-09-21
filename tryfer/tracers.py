@@ -20,11 +20,11 @@ from collections import defaultdict
 
 from zope.interface import implements
 
-from twisted.python import log
 from twisted.internet import reactor
 from twisted.web.client import FileBodyProducer
 from twisted.web.http_headers import Headers
 
+from tryfer import log
 from tryfer.interfaces import ITracer
 from tryfer._thrift.zipkinCore import constants
 from tryfer.formatters import json_formatter, base64_thrift_formatter
@@ -64,11 +64,11 @@ class EndAnnotationTracer(object):
 
                     del self._annotations_for_trace[trace_key]
 
-                    log.msg(format=("Sending trace: %(trace_key)s w/"
-                                    " %(annotations)s"),
-                            system=self.__class__.__name__,
-                            trace_key=trace_key,
-                            annotations=annotations)
+                    log.debug(format=("Sending trace: %(trace_key)s w/"
+                                      " %(annotations)s"),
+                              system=self.__class__.__name__,
+                              trace_key=trace_key,
+                              annotations=annotations)
                     self._tracer.record([(trace, saved_annotations)])
 
                     break

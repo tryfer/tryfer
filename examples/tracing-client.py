@@ -18,13 +18,16 @@ import sys
 
 from twisted.internet import reactor
 from twisted.web.client import Agent
-
+from twisted.python import log
 from tryfer.tracers import push_tracer, DebugTracer, EndAnnotationTracer
 
 from tryfer.http import TracingAgent
 
 
 if __name__ == '__main__':
+    # Set up twisted's logging.
+    log.startLogging(sys.stdout)
+
     # Set up our DebugTracer to print json to stdout.
     push_tracer(EndAnnotationTracer(DebugTracer(sys.stdout)))
 
