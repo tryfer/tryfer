@@ -157,9 +157,8 @@ class Endpoint(object):
         return not self == other
 
     def __repr__(self):
-        return (
-            '{0.__class__.__name__}({0.ipv4!r}, {0.port!r}, {0.service_name!r})'
-        ).format(self)
+        return ('{0.__class__.__name__}({0.ipv4!r}, {0.port!r}, '
+                '{0.service_name!r})').format(self)
 
 
 class Annotation(object):

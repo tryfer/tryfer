@@ -188,6 +188,70 @@ class RawZipkinTracerTests(TestCase):
              'AA8ACAwAAAAAAA=='])
 
 
+class RawRESTkinScribeTracerTests(TestCase):
+    def setUp(self):
+        self.scribe = mock.Mock()
+        self.tracer = RawRESTkinScribeTracer(self.scribe)
+
+    def test_verifyObject(self):
+        verifyObject(ITracer, self.tracer)
+
+    def test_traces_immediately(self):
+        t = Trace('test', 1, 2, tracers=[self.tracer])
+        t.record(Annotation.client_send(1))
+
+        self.assertEqual(self.scribe.log.call_count, 1)
+
+        args = self.scribe.log.mock_calls[0][1]
+
+        self.assertEqual('restkin', args[0])
+        entries = args[1]
+        self.assertEqual(len(entries), 1)
+
+        self.assertEqual(
+           json.loads(entries[0]),
+           [{'trace_id': '0000000000000001',
+             'span_id': '0000000000000002',
+             'name': 'test',
+             'annotations': [
+                 {'type': 'timestamp', 'value': 1, 'key': 'cs'}]}])
+
+    def test_handles_batched_traces(self):
+        t1 = Trace('test', 1, 2)
+        t2 = Trace('test2', 3, 4)
+
+        cs1 = Annotation.client_send(1)
+        cs2 = Annotation.client_send(2)
+        cr1 = Annotation.client_recv(3)
+        cr2 = Annotation.client_recv(4)
+
+        self.tracer.record([(t1, [cs1, cr1]), (t2, [cs2, cr2])])
+
+        self.assertEqual(self.scribe.log.call_count, 1)
+
+        args = self.scribe.log.mock_calls[0][1]
+
+        self.assertEqual('restkin', args[0])
+        entries = args[1]
+        self.assertEqual(len(entries), 1)
+
+        self.assertEqual(
+           json.loads(entries[0]),
+           [{'trace_id': '0000000000000001',
+             'span_id': '0000000000000002',
+             'name': 'test',
+             'annotations': [
+                 {'type': 'timestamp', 'value': 1, 'key': 'cs'},
+                 {'type': 'timestamp', 'value': 3, 'key': 'cr'}
+             ]},
+            {'trace_id': '0000000000000003',
+             'span_id': '0000000000000004',
+             'name': 'test2',
+             'annotations': [
+                 {'type': 'timestamp', 'value': 2, 'key': 'cs'},
+                 {'type': 'timestamp', 'value': 4, 'key': 'cr'}]}])
+
+
 class RawRESTkinHTTPTracerTests(TestCase):
     def assertBodyEquals(self, bodyProducer, expectedOutput):
         output = StringIO()
