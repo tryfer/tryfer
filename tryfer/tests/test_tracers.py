@@ -188,35 +188,7 @@ class RawZipkinTracerTests(TestCase):
              'AA8ACAwAAAAAAA=='])
 
 
-class ZipkinTracerTests(TestCase):
-    def setUp(self):
-        self.scribe = mock.Mock()
-
-    def test_verifyObject(self):
-        verifyObject(ITracer, ZipkinTracer(self.scribe))
-
-    def test_logs_at_end(self):
-        tracer = ZipkinTracer(self.scribe)
-        t = Trace('test_raw_zipkin', 1, 2, tracers=[tracer])
-
-        t.record(Annotation.client_send(1), Annotation.client_recv(2))
-
-        self.scribe.log.assert_called_once_with(
-            'zipkin',
-            ['CgABAAAAAAAAAAELAAMAAAAPdGVzdF9yYXdfemlwa2luCgAEAAAAAAAAAAIPAAY'
-             'MAAAAAgoAAQAA\nAAAAAAABCwACAAAAAmNzAAoAAQAAAAAAAAACCwACAAAAAmNy'
-             'AA8ACAwAAAAAAA=='])
-
-    def test_doesnt_log_immediately(self):
-        tracer = ZipkinTracer(self.scribe)
-        t = Trace('test_raw_zipkin', 1, 2, tracers=[tracer])
-
-        t.record(Annotation.client_send(1))
-
-        self.assertEqual(self.scribe.log.call_count, 0)
-
-
-class _HTTPTestMixin(object):
+class RawRESTkinHTTPTracerTests(TestCase):
     def assertBodyEquals(self, bodyProducer, expectedOutput):
         output = StringIO()
         consumer = FileConsumer(output)
@@ -232,8 +204,6 @@ class _HTTPTestMixin(object):
 
         return d
 
-
-class RawRESTkinHTTPTracerTests(TestCase, _HTTPTestMixin):
     def setUp(self):
         self.agent = mock.Mock()
 
@@ -282,107 +252,6 @@ class RawRESTkinHTTPTracerTests(TestCase, _HTTPTestMixin):
 
         return self.assertBodyEquals(
             bodyProducer,
-            [{'trace_id': '0000000000000001',
-              'span_id': '0000000000000002',
-              'name': 'test',
-              'annotations': [
-                  {'type': 'timestamp', 'value': 1, 'key': 'cs'},
-                  {'type': 'timestamp', 'value': 3, 'key': 'cr'}
-              ]},
-             {'trace_id': '0000000000000003',
-              'span_id': '0000000000000004',
-              'name': 'test2',
-              'annotations': [
-                  {'type': 'timestamp', 'value': 2, 'key': 'cs'},
-                  {'type': 'timestamp', 'value': 4, 'key': 'cr'}
-              ]}])
-
-
-class RESTkinHTTPTracerTests(TestCase, _HTTPTestMixin):
-    def setUp(self):
-        self.agent = mock.Mock()
-
-        self.tracer = RESTkinHTTPTracer(self.agent, 'http://trace.it')
-        self.trace = Trace('test', 1, 2, tracers=[self.tracer])
-
-    def test_verifyObject(self):
-        verifyObject(ITracer, self.tracer)
-
-    def test_doesnt_post_immediately(self):
-        self.trace.record(Annotation.client_send(1))
-
-        self.assertEqual(self.agent.request.call_count, 0)
-
-    def test_posts_at_end(self):
-        self.trace.record(Annotation.client_send(1))
-        self.trace.record(Annotation.client_recv(2))
-
-        self.assertEqual(self.agent.request.call_count, 1)
-
-        args = self.agent.request.mock_calls[0][1]
-        self.assertEqual(('POST', 'http://trace.it', Headers({})), args[:3])
-
-        bodyProducer = args[3]
-
-        return self.assertBodyEquals(
-            bodyProducer,
-            [{'trace_id': '0000000000000001',
-              'span_id': '0000000000000002',
-              'name': 'test',
-              'annotations': [
-                  {'type': 'timestamp', 'value': 1, 'key': 'cs'},
-                  {'type': 'timestamp', 'value': 2, 'key': 'cr'}]}])
-
-
-class RawRESTkinScribeTracerTests(TestCase):
-    def setUp(self):
-        self.scribe = mock.Mock()
-        self.tracer = RawRESTkinScribeTracer(self.scribe)
-
-    def test_verifyObject(self):
-        verifyObject(ITracer, self.tracer)
-
-    def test_traces_immediately(self):
-        t = Trace('test', 1, 2, tracers=[self.tracer])
-        t.record(Annotation.client_send(1))
-
-        self.assertEqual(self.scribe.log.call_count, 1)
-
-        args = self.scribe.log.mock_calls[0][1]
-
-        self.assertEqual('restkin', args[0])
-        entries = args[1]
-        self.assertEqual(len(entries), 1)
-
-        self.assertEqual(
-            json.loads(entries[0]),
-            [{'trace_id': '0000000000000001',
-              'span_id': '0000000000000002',
-              'name': 'test',
-              'annotations': [
-                  {'type': 'timestamp', 'value': 1, 'key': 'cs'}]}])
-
-    def test_handles_batched_traces(self):
-        t1 = Trace('test', 1, 2)
-        t2 = Trace('test2', 3, 4)
-
-        cs1 = Annotation.client_send(1)
-        cs2 = Annotation.client_send(2)
-        cr1 = Annotation.client_recv(3)
-        cr2 = Annotation.client_recv(4)
-
-        self.tracer.record([(t1, [cs1, cr1]), (t2, [cs2, cr2])])
-
-        self.assertEqual(self.scribe.log.call_count, 1)
-
-        args = self.scribe.log.mock_calls[0][1]
-
-        self.assertEqual('restkin', args[0])
-        entries = args[1]
-        self.assertEqual(len(entries), 1)
-
-        self.assertEqual(
-            json.loads(entries[0]),
             [{'trace_id': '0000000000000001',
               'span_id': '0000000000000002',
               'name': 'test',
@@ -524,9 +393,6 @@ class BufferingTracerTests(TestCase):
 
 class _StandardTracerTestMixin(object):
     clock = Clock()
-
-    def recorded_traces(self):
-        raise NotImplementedError()
 
     def test_verifyObject(self):
         verifyObject(ITracer, self.tracer)
