@@ -209,8 +209,8 @@ class RawRESTkinScribeTracerTests(TestCase):
         self.assertEqual(len(entries), 1)
 
         self.assertEqual(
-           json.loads(entries[0]),
-           [{'trace_id': '0000000000000001',
+            json.loads(entries[0]),
+            [{'trace_id': '0000000000000001',
              'span_id': '0000000000000002',
              'name': 'test',
              'annotations': [
@@ -236,20 +236,19 @@ class RawRESTkinScribeTracerTests(TestCase):
         self.assertEqual(len(entries), 1)
 
         self.assertEqual(
-           json.loads(entries[0]),
-           [{'trace_id': '0000000000000001',
-             'span_id': '0000000000000002',
-             'name': 'test',
-             'annotations': [
-                 {'type': 'timestamp', 'value': 1, 'key': 'cs'},
-                 {'type': 'timestamp', 'value': 3, 'key': 'cr'}
-             ]},
-            {'trace_id': '0000000000000003',
-             'span_id': '0000000000000004',
-             'name': 'test2',
-             'annotations': [
-                 {'type': 'timestamp', 'value': 2, 'key': 'cs'},
-                 {'type': 'timestamp', 'value': 4, 'key': 'cr'}]}])
+            json.loads(entries[0]),
+            [{'trace_id': '0000000000000001',
+              'span_id': '0000000000000002',
+              'name': 'test',
+              'annotations': [
+                  {'type': 'timestamp', 'value': 1, 'key': 'cs'},
+                  {'type': 'timestamp', 'value': 3, 'key': 'cr'}]},
+             {'trace_id': '0000000000000003',
+              'span_id': '0000000000000004',
+              'name': 'test2',
+              'annotations': [
+                  {'type': 'timestamp', 'value': 2, 'key': 'cs'},
+                  {'type': 'timestamp', 'value': 4, 'key': 'cr'}]}])
 
 
 class RawRESTkinHTTPTracerTests(TestCase):
