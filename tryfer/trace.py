@@ -74,6 +74,20 @@ class Trace(object):
         # to this trace.
         self._endpoint = None
 
+    def __eq__(self, other):
+        return ITrace.providedBy(other) and (
+            (self.trace_id, self.span_id, self.parent_span_id) ==
+            (other.trace_id, other.span_id, other.parent_span_id))
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __repr__(self):
+        return (
+            '{0.__class__.__name__}({0.name!r}, trace_id={0.trace_id!r}, '
+            'span_id={0.span_id!r}, parent_span_id={0.parent_span_id!r})'
+        ).format(self)
+
     def child(self, name):
         """
         Create a new instance of this class derived from the current instance
@@ -131,6 +145,22 @@ class Endpoint(object):
         self.port = port
         self.service_name = service_name
 
+    def __eq__(self, other):
+        if other is None:
+            return False
+
+        return IEndpoint.providedBy(other) and (
+            (self.ipv4, self.port, self.service_name) ==
+            (other.ipv4, other.port, other.service_name))
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __repr__(self):
+        return (
+            '{0.__class__.__name__}({0.ipv4!r}, {0.port!r}, {0.service_name!r})'
+        ).format(self)
+
 
 class Annotation(object):
     implements(IAnnotation)
@@ -151,6 +181,20 @@ class Annotation(object):
         self.value = value
         self.annotation_type = annotation_type
         self.endpoint = endpoint
+
+    def __eq__(self, other):
+        return IAnnotation.providedBy(other) and (
+            (self.name, self.value, self.annotation_type, self.endpoint) ==
+            (other.name, other.value, other.annotation_type, other.endpoint))
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __repr__(self):
+        return (
+            '{0.__class__.__name__}({0.name!r}, {0.value!r}, '
+            '{0.annotation_type!r}, {0.endpoint})'
+        ).format(self)
 
     @classmethod
     def timestamp(cls, name, timestamp=None):
