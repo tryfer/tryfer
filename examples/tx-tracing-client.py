@@ -21,7 +21,7 @@ from twisted.web.client import Agent
 from twisted.python import log
 from tryfer.tracers import push_tracer, DebugTracer, EndAnnotationTracer
 
-from tryfer.http import TracingAgent
+from tryfer.tx.http import TracingAgent
 
 
 if __name__ == '__main__':

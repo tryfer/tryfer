@@ -26,7 +26,7 @@ from twisted.web.http_headers import Headers
 from twisted.internet.defer import succeed
 
 from tryfer.trace import Trace, Endpoint
-from tryfer.http import TracingAgent, TracingWrapperResource
+from tryfer.tx.http import TracingAgent, TracingWrapperResource
 
 
 class TracingAgentTests(TestCase):
@@ -43,7 +43,7 @@ class TracingAgentTests(TestCase):
         child_trace.span_id = 3
         child_trace.parent_span_id = 2
 
-    @mock.patch('tryfer.http.Trace')
+    @mock.patch('tryfer.tx.http.Trace')
     def test_no_parent(self, mock_trace):
         mock_trace.return_value.trace_id = 1
         mock_trace.return_value.span_id = 2
@@ -62,7 +62,7 @@ class TracingAgentTests(TestCase):
 
         self.trace.child.assert_called_with('GET')
 
-    @mock.patch('tryfer.http.Annotation')
+    @mock.patch('tryfer.tx.http.Annotation')
     def test_uri_annotation(self, mock_annotation):
         agent = TracingAgent(self.agent, self.trace)
 
@@ -74,7 +74,7 @@ class TracingAgentTests(TestCase):
         self.trace.child.return_value.record.assert_any_call(
             mock_annotation.string.return_value)
 
-    @mock.patch('tryfer.http.Annotation')
+    @mock.patch('tryfer.tx.http.Annotation')
     def test_client_send_annotation(self, mock_annotation):
         agent = TracingAgent(self.agent, self.trace)
 
@@ -84,7 +84,7 @@ class TracingAgentTests(TestCase):
         self.trace.child.return_value.record.assert_any_call(
             mock_annotation.client_send.return_value)
 
-    @mock.patch('tryfer.http.Annotation')
+    @mock.patch('tryfer.tx.http.Annotation')
     def test_client_recv_annotation(self, mock_annotation):
         self.agent.request.return_value = succeed(mock.Mock())
         agent = TracingAgent(self.agent, self.trace)
@@ -107,7 +107,7 @@ class TracingAgentTests(TestCase):
                      'X-B3-ParentSpanId': ['0000000000000002']}),
             None)
 
-    @mock.patch('tryfer.http.Trace')
+    @mock.patch('tryfer.tx.http.Trace')
     def test_sets_endpoint(self, mock_trace):
         endpoint = Endpoint('127.0.0.1', 0, 'client')
         agent = TracingAgent(self.agent, endpoint=endpoint)
@@ -146,14 +146,14 @@ class TracingWrapperResourceTests(TestCase):
         self.wrapped.getChildWithDefault.assert_called_with(
             'foo', self.request)
 
-    @mock.patch('tryfer.http.Trace')
+    @mock.patch('tryfer.tx.http.Trace')
     def test_constructsTrace(self, mock_trace):
         self.resource.getChildWithDefault('foo', self.request)
 
         mock_trace.assert_called_with('GET', None, None, None)
 
-    @mock.patch('tryfer.http.Annotation')
-    @mock.patch('tryfer.http.Trace')
+    @mock.patch('tryfer.tx.http.Annotation')
+    @mock.patch('tryfer.tx.http.Trace')
     def test_server_recv_annotation(self, mock_trace, mock_annotation):
         self.resource.getChildWithDefault('foo', self.request)
 
@@ -161,8 +161,8 @@ class TracingWrapperResourceTests(TestCase):
         mock_trace.return_value.record(
             mock_annotation.server_recv.return_value)
 
-    @mock.patch('tryfer.http.Annotation')
-    @mock.patch('tryfer.http.Trace')
+    @mock.patch('tryfer.tx.http.Annotation')
+    @mock.patch('tryfer.tx.http.Trace')
     def test_server_send_annotation(self, mock_trace, mock_annotation):
         self.request.notifyFinish.return_value = succeed(None)
 
@@ -170,7 +170,7 @@ class TracingWrapperResourceTests(TestCase):
 
         mock_annotation.server_send.assert_called_with()
 
-    @mock.patch('tryfer.http.Trace')
+    @mock.patch('tryfer.tx.http.Trace')
     def test_uses_trace_headers(self, mock_trace):
         self.request.requestHeaders.setRawHeaders('X-B3-TraceId', ['a'])
         self.request.requestHeaders.setRawHeaders('X-B3-SpanId', ['b'])
@@ -180,7 +180,7 @@ class TracingWrapperResourceTests(TestCase):
 
         mock_trace.assert_called_with('GET', 10, 11, 12)
 
-    @mock.patch('tryfer.http.Trace')
+    @mock.patch('tryfer.tx.http.Trace')
     def test_uses_trace_headers_no_parent(self, mock_trace):
         self.request.requestHeaders.setRawHeaders('X-B3-TraceId', ['a'])
         self.request.requestHeaders.setRawHeaders('X-B3-SpanId', ['b'])
@@ -189,7 +189,7 @@ class TracingWrapperResourceTests(TestCase):
 
         mock_trace.assert_called_with('GET', 10, 11, None)
 
-    @mock.patch('tryfer.http.Trace')
+    @mock.patch('tryfer.tx.http.Trace')
     def test_sets_endpoint(self, mock_trace):
         self.resource.getChildWithDefault('foo', self.request)
 
@@ -201,7 +201,7 @@ class TracingWrapperResourceTests(TestCase):
         self.assertEqual(endpoint.port, 8080)
         self.assertEqual(endpoint.service_name, 'http')
 
-    @mock.patch('tryfer.http.Trace')
+    @mock.patch('tryfer.tx.http.Trace')
     def test_sets_endpoint_with_service_name(self, mock_trace):
         resource = TracingWrapperResource(
             self.wrapped, service_name='test-http')

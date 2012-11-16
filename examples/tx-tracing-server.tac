@@ -22,7 +22,7 @@ from twisted.application import internet, service
 
 from twisted.web import server, static
 
-from tryfer.http import TracingWrapperResource
+from tryfer.tx.http import TracingWrapperResource
 from tryfer.tracers import push_tracer, DebugTracer, EndAnnotationTracer
 
 # Add the debug tracer.

@@ -18,7 +18,7 @@ import mock
 
 from zope.interface.verify import verifyObject
 
-from twisted.trial.unittest import TestCase
+from unittest import TestCase
 
 from tryfer.interfaces import ITrace, IAnnotation, IEndpoint
 from tryfer.trace import Trace, Annotation, Endpoint

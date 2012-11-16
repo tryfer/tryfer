@@ -83,7 +83,7 @@ Start by opening two terminals and going to the tryfer source directory.
 
 In terminal #1 we can start the server using `twistd`::
 
-    tryfer> twistd -n -y examples/tracing-server.tac
+    tryfer> twistd -n -y examples/tx-tracing-server.tac
     2012-09-05 13:22:02-0700 [-] Log opened.
     2012-09-05 13:22:02-0700 [-] twistd 12.1.0 (/Users/dreid/.virtualenvs/tracing/bin/python 2.7.2) starting up.
     2012-09-05 13:22:02-0700 [-] reactor class: twisted.internet.selectreactor.SelectReactor.
@@ -93,7 +93,7 @@ In terminal #1 we can start the server using `twistd`::
 In terminal #2 we will run the client which will make a single HTTP request to
 the server::
 
-    tryfer> python examples/tracing-client.py
+    tryfer> python examples/tx-tracing-client.py
     [
       {
         "annotations": [
