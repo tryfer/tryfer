@@ -6,4 +6,5 @@ if [[ "${TWISTED_VERSION}" != "" ]]; then
     pip install -r twisted-requirements.txt --use-mirrors
 fi
 
+pip install pyflakes pep8 --use-mirrors
 pip install -r sync-requirements.txt --use-mirrors
