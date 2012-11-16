@@ -24,6 +24,7 @@ from tryfer.interfaces import ITracer
 from tryfer._thrift.zipkinCore import constants
 from tryfer.formatters import json_formatter
 
+
 class EndAnnotationTracer(object):
     """
     A tracer which collects all annotations for a trace until an one of several
@@ -84,7 +85,6 @@ class DebugTracer(object):
         self.destination.write(json_formatter(traces, indent=2))
         self.destination.write('\n')
         self.destination.flush()
-
 
 
 _globalTracers = []

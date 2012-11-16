@@ -7,6 +7,7 @@ from zope.interface import implements
 from tryfer.interfaces import ITracer
 from tryfer.formatters import base64_thrift_formatter, json_formatter
 
+
 class RawZipkinTracer(object):
     """
     Send annotations to Zipkin as Base64 encoded Thrift objects over scribe.
@@ -89,4 +90,3 @@ class RawRESTkinHTTPTracer(object):
         except Exception:
             self.logger.exception(
                 "Error sending traces to {0}".format(self._trace_url))
-

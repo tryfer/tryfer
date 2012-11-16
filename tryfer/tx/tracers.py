@@ -25,6 +25,7 @@ from tryfer.interfaces import ITracer
 from tryfer.formatters import json_formatter, base64_thrift_formatter
 from tryfer.tracers import EndAnnotationTracer
 
+
 class RawZipkinTracer(object):
     """
     Send annotations to Zipkin as Base64 encoded Thrift objects over scribe.
