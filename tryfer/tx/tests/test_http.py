@@ -14,21 +14,26 @@
 
 import mock
 
+from unittest import TestCase
+
 from zope.interface.verify import verifyObject
 
-from twisted.trial.unittest import TestCase
-
-from twisted.web.resource import Resource, IResource
-from twisted.web.server import Request
-from twisted.web.client import Agent
-from twisted.web.http_headers import Headers
-
-from twisted.internet.defer import succeed
-
 from tryfer.trace import Trace, Endpoint
-from tryfer.tx.http import TracingAgent, TracingWrapperResource
+
+from tryfer.tx.tests import hasTwisted, skipWithoutTwisted
+
+if hasTwisted:
+    from twisted.internet.defer import succeed
+
+    from twisted.web.resource import Resource, IResource
+    from twisted.web.server import Request
+    from twisted.web.client import Agent
+    from twisted.web.http_headers import Headers
+
+    from tryfer.tx.http import TracingAgent, TracingWrapperResource
 
 
+@skipWithoutTwisted
 class TracingAgentTests(TestCase):
     def setUp(self):
         self.agent = mock.Mock(Agent)
@@ -116,6 +121,7 @@ class TracingAgentTests(TestCase):
         mock_trace.return_value.set_endpoint.assert_called_with(endpoint)
 
 
+@skipWithoutTwisted
 class TracingWrapperResourceTests(TestCase):
     def setUp(self):
         self.wrapped = mock.Mock(Resource)

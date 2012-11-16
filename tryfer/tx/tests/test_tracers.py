@@ -16,32 +16,37 @@ from StringIO import StringIO
 
 import json
 
+from unittest import TestCase
+
 import mock
 
 from zope.interface.verify import verifyObject
 
-from twisted.trial.unittest import TestCase
-
-from twisted.internet.task import Clock
-from twisted.internet.defer import succeed
-
-from twisted.web.http_headers import Headers
-
-from tryfer.tx.tracers import (
-    RawZipkinTracer,
-    ZipkinTracer,
-    RawRESTkinHTTPTracer,
-    RESTkinHTTPTracer,
-    RawRESTkinScribeTracer,
-    RESTkinScribeTracer,
-    BufferingTracer
-)
 
 from tryfer.interfaces import ITracer
 
 from tryfer.trace import Trace, Annotation
 
+from tryfer.tx.tests import hasTwisted, skipWithoutTwisted
 
+if hasTwisted:
+    from twisted.internet.task import Clock
+    from twisted.internet.defer import succeed
+
+    from twisted.web.http_headers import Headers
+
+    from tryfer.tx.tracers import (
+        RawZipkinTracer,
+        ZipkinTracer,
+        RawRESTkinHTTPTracer,
+        RESTkinHTTPTracer,
+        RawRESTkinScribeTracer,
+        RESTkinScribeTracer,
+        BufferingTracer
+    )
+
+
+@skipWithoutTwisted
 class RawZipkinTracerTests(TestCase):
     def setUp(self):
         self.scribe = mock.Mock()
@@ -105,6 +110,7 @@ class RawZipkinTracerTests(TestCase):
              'AA8ACAwAAAAAAA=='])
 
 
+@skipWithoutTwisted
 class RawRESTkinScribeTracerTests(TestCase):
     def setUp(self):
         self.scribe = mock.Mock()
@@ -168,6 +174,7 @@ class RawRESTkinScribeTracerTests(TestCase):
                   {'type': 'timestamp', 'value': 4, 'key': 'cr'}]}])
 
 
+@skipWithoutTwisted
 class RawRESTkinHTTPTracerTests(TestCase):
     def assertBodyEquals(self, bodyProducer, expectedOutput):
         output = StringIO()
@@ -247,6 +254,7 @@ class RawRESTkinHTTPTracerTests(TestCase):
               ]}])
 
 
+@skipWithoutTwisted
 class BufferingTracerTests(TestCase):
     def setUp(self):
         self.mock_tracer = mock.Mock()
@@ -346,7 +354,10 @@ class BufferingTracerTests(TestCase):
 
 
 class _StandardTracerTestMixin(object):
-    clock = Clock()
+    if hasTwisted:
+        clock = Clock()
+    else:
+        clock = None
 
     def test_verifyObject(self):
         verifyObject(ITracer, self.tracer)
@@ -384,6 +395,7 @@ class _StandardTracerTestMixin(object):
         self.assertEqual(self.record_function.call_count, 1)
 
 
+@skipWithoutTwisted
 class RESTkinScribeTracerTests(TestCase, _StandardTracerTestMixin):
     def setUp(self):
         self.scribe = mock.Mock()
@@ -392,6 +404,7 @@ class RESTkinScribeTracerTests(TestCase, _StandardTracerTestMixin):
         self.record_function = self.scribe.log
 
 
+@skipWithoutTwisted
 class RESTkinHTTPTracerTests(TestCase, _StandardTracerTestMixin):
     def setUp(self):
         self.agent = mock.Mock()
@@ -402,6 +415,7 @@ class RESTkinHTTPTracerTests(TestCase, _StandardTracerTestMixin):
             self.agent, 'http://trace.io/', _reactor=self.clock)
 
 
+@skipWithoutTwisted
 class ZipkinTracerTests(TestCase, _StandardTracerTestMixin):
     def setUp(self):
         self.scribe = mock.Mock()
