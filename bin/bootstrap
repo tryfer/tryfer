@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+
+if [[ "${TWISTED_VERSION}" != "" ]]; then
+    pip install Twisted==${TWISTED_VERSION};
+    pip install -r twisted-requirements.txt --use-mirrors
+fi
+
+pip install -r sync-requirements.txt --use-mirrors

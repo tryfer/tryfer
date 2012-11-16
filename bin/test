@@ -1,0 +1,6 @@
+#!/bin/sh
+set -e
+
+pep8 --exclude='_thrift' tryfer
+find tryfer -not -path '*/_thrift*' -name '*.py' | xargs pyflakes
+nosetests -v tryfer

@@ -1,12 +1,17 @@
 language: python
+
 python:
     - '2.6'
     - '2.7'
 
+env:
+  - TWISTED_VERISON=12.2.0
+  - TWISTED_VERSION=12.1.0
+  - TWISTED_VERSION=12.0.0
+  - TWISTED_VERSION=
+
 install:
-  - pip install pep8 pyflakes --use-mirrors
-  - pip install -r requirements.txt --use-mirrors
+  - ./bin/bootstrap
+
 script:
-  - pep8 --exclude='_thrift' tryfer
-  - find tryfer -not -path '*/_thrift*' -name '*.py' | xargs pyflakes
-  - trial tryfer
+  - ./bin/test

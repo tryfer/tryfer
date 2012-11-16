@@ -1,0 +1,2 @@
+Twisted>=12.1.0
+scrivener>=0.2.0
