@@ -14,7 +14,7 @@
 
 import mock
 
-from unittest import TestCase
+from unittest2 import TestCase
 
 from zope.interface.verify import verifyObject
 

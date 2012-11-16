@@ -18,7 +18,7 @@ import mock
 
 from zope.interface.verify import verifyObject
 
-from unittest import TestCase
+from unittest2 import TestCase
 
 from tryfer.interfaces import ITrace, IAnnotation, IEndpoint
 from tryfer.trace import Trace, Annotation, Endpoint

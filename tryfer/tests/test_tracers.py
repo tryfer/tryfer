@@ -22,7 +22,7 @@ import mock
 
 from zope.interface.verify import verifyObject
 
-from unittest import TestCase
+from unittest2 import TestCase
 
 from tryfer.tracers import get_tracers, set_tracers, push_tracer
 from tryfer.tracers import (

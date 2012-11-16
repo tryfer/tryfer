@@ -16,7 +16,7 @@ from StringIO import StringIO
 
 import json
 
-from unittest import TestCase
+from unittest2 import TestCase
 
 import mock
 

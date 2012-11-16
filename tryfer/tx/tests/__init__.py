@@ -1,4 +1,4 @@
-from unittest import skipIf
+from unittest2 import skipIf
 
 _twisted = None
 try:
