@@ -25,6 +25,12 @@ from tryfer._thrift.scribe.ttypes import LogEntry
 
 
 class ScribeClient(object):
+    """
+    A client for logging messages to Scribe.
+
+    @param host: C{str} hostname or IP address of scribe service.
+    @param port: C{int} TCP port of scribe service.
+    """
     def __init__(self, host, port):
         self._transport = TTransport.TFramedTransport(
             TSocket.TSocket(host, port))
@@ -36,6 +42,12 @@ class ScribeClient(object):
         self._lock = threading.Lock()
 
     def log(self, category, messages):
+        """
+        Log a list of messages to a scribe category.
+
+        @param category: C{str} indicating the scribe category.
+        @param messages: C{list} of C{str} messages.
+        """
         self._lock.acquire()
 
         if not self._transport.isOpen():
@@ -50,16 +62,3 @@ class ScribeClient(object):
             self._transport.close()
         finally:
             self._lock.release()
-
-
-if __name__ == '__main__':
-    c = ScribeClient('localhost', 61686)
-
-    c.log("foo", ["bar"])
-
-    c.log("foo", ["baz", "bax"])
-
-    import time
-    time.sleep(60)
-
-    c.log("bar", ["quux"])
