@@ -1,6 +1,6 @@
 import mock
 
-import unittest2 as unittest
+from unittest2 import TestCase
 
 from thrift import Thrift
 
@@ -9,7 +9,7 @@ from tryfer._thrift.scribe.scribe import LogEntry
 from tryfer.py.scribe_client import ScribeClient
 
 
-class ScribeClientTests(unittest.TestCase):
+class ScribeClientTests(TestCase):
     @mock.patch('tryfer.py.scribe_client.threading.Lock')
     @mock.patch('tryfer.py.scribe_client.Client')
     @mock.patch('tryfer.py.scribe_client.TSocket.TSocket')

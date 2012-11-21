@@ -22,7 +22,6 @@ import mock
 
 from zope.interface.verify import verifyObject
 
-
 from tryfer.interfaces import ITracer
 
 from tryfer.trace import Trace, Annotation
