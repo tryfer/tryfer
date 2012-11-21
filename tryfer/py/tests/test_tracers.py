@@ -16,6 +16,7 @@ from tryfer.py.tracers import (
     RawRESTkinHTTPTracer
 )
 
+
 class RawZipkinTracerTests(TestCase):
     def setUp(self):
         self.scribe = mock.Mock()
