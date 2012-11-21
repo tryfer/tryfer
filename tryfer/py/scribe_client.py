@@ -60,5 +60,6 @@ class ScribeClient(object):
             self._transport.close()
         except Exception:
             self._transport.close()
+            raise
         finally:
             self._lock.release()
