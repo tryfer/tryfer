@@ -3,7 +3,7 @@ language: python
 python:
     - '2.6'
     - '2.7'
-
+    - pypy
 env:
   - TWISTED_VERISON=12.2.0
   - TWISTED_VERSION=12.1.0
