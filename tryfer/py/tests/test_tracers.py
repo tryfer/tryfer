@@ -1,4 +1,5 @@
 import json
+import Queue
 
 import mock
 
@@ -9,11 +10,13 @@ from zope.interface.verify import verifyObject
 from tryfer.interfaces import ITracer
 
 from tryfer.trace import Trace, Annotation
+from tryfer.tracers import DebugTracer
 
 from tryfer.py.tracers import (
     RawZipkinTracer,
     RawRESTkinScribeTracer,
-    RawRESTkinHTTPTracer
+    RawRESTkinHTTPTracer,
+    ThreadedBufferingTracer
 )
 
 
@@ -190,3 +193,84 @@ class RawRESTkinHTTPTracerTests(TestCase):
                       {'type': 'timestamp', 'value': 2, 'key': 'cs'},
                       {'type': 'timestamp', 'value': 4, 'key': 'cr'}
                   ]}]))
+
+
+_empty = object()
+
+class ThreadedBufferingTracerTests(TestCase):
+    def setUp(self):
+        self.mock_tracer = mock.Mock()
+        self.trace_queue = Queue.Queue()
+
+        def _mock_record(*args, **kwargs):
+            self.trace_queue.put(None)
+
+        self.mock_tracer.record.side_effect = _mock_record
+
+        self.in_queue = Queue.Queue()
+        self.out_queue = Queue.Queue()
+
+        self.mock_queue_patcher = mock.patch("tryfer.py.tracers.Queue.Queue")
+        self.mock_queue = self.mock_queue_patcher.start().return_value
+
+        def _mock_get(*args, **kwargs):
+            if 'timeout' in kwargs:
+                del kwargs['timeout']
+            item = self.out_queue.get(*args, **kwargs)
+
+            if item == _empty:
+                raise Queue.Empty()
+
+            return item
+
+        self.mock_queue.get.side_effect = _mock_get
+
+        def _mock_put(*args, **kwargs):
+            return self.in_queue.put(*args, **kwargs)
+
+        self.mock_queue.put.side_effect = _mock_put
+
+        self.tracer = ThreadedBufferingTracer(self.mock_tracer, 2, 10)
+        self.trace = Trace('test', 1, 2, tracers=[self.tracer])
+
+    def tearDown(self):
+        self.mock_queue_patcher.stop()
+
+    def pump(self):
+        self.out_queue.put(self.in_queue.get(block=True))
+
+    def wait(self):
+        self.trace_queue.get(block=True, timeout=10)
+
+    def test_max_traces_record(self):
+        a1 = Annotation.client_send(1)
+        a2 = Annotation.client_recv(2)
+
+        self.trace.record(a1)
+
+        self.assertEqual(self.mock_queue.put.call_count, 0)
+
+        self.trace.record(a2)
+
+        self.mock_queue.put.assert_called_once_with(None)
+
+        self.pump()
+        self.wait()
+
+        self.mock_tracer.record.assert_called_once_with(
+            [(self.trace, (a1,)), (self.trace, (a2,))]
+        )
+
+    def test_send_interval_record(self):
+        a1 = Annotation.client_send(1)
+
+        self.trace.record(a1)
+
+        self.assertEqual(self.mock_queue.put.call_count, 0)
+
+        self.out_queue.put(_empty)
+        self.wait()
+
+        self.mock_tracer.record.assert_called_once_with(
+            [(self.trace, (a1,))]
+        )
