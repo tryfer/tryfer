@@ -10,7 +10,6 @@ from zope.interface.verify import verifyObject
 from tryfer.interfaces import ITracer
 
 from tryfer.trace import Trace, Annotation
-from tryfer.tracers import DebugTracer
 
 from tryfer.py.tracers import (
     RawZipkinTracer,
@@ -196,6 +195,7 @@ class RawRESTkinHTTPTracerTests(TestCase):
 
 
 _empty = object()
+
 
 class ThreadedBufferingTracerTests(TestCase):
     def setUp(self):
