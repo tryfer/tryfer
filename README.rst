@@ -45,6 +45,8 @@ Headers
 * ``X-B3-SpanId`` - hex encoded span id.
 * ``X-B3-ParentSpanId`` - hex encoded span id of parent span.
 
+See `here <https://github.com/twitter/finagle/blob/master/finagle-http/src/main/scala/com/twitter/finagle/http/Codec.scala#L198>`_ for the complete definition.
+
 Examples
 ~~~~~~~~
 
