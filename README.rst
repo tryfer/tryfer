@@ -6,9 +6,38 @@ library for Zipkin.
 
 It's design is heavily influenced by Finagle_'s tracing libraries.
 
+Tracing
+-------
+
+The Zipkin_ system primarily deals with the collection and analyzation of
+requests. It does not define how tracing contexts are passed between
+distributed systems.
+
+Finagle_, Twitter's project, is a base structure for services. It handles all
+of the inter-service communication details. The inter-service communication
+details include how a tracing context is passed between systems.
+
+Tryfer defines a ``TracingAgent`` and a ``TracingWrapperResource`` for
+Twisted_ services. These objects can pass along tracing contexts between
+services speaking HTTP and using Twisted_. This library is mostly compatible
+with Finagle_ based services. It supports client side and server side
+connections to Finagle_ based services. (In addition to client side and
+server side connections to services using this library).
+
+See `here <https://github.com/twitter/finagle/blob/master/finagle-http/src/main/scala/com/twitter/finagle/http/Codec.scala#L198>`_
+for Finagle_'s method of passing the tracing context over HTTP.
+
+Any Zipkin_ client library must provide a way to log ``Trace`` s to the
+Zipkin_ Collector. The Zipkin_ Collector speaks Scribe_'s protocol. So this
+is usually accomplished by either pointing the Scribe_ client to either a
+Scribe_ instance, and having the Scribe_ instance point to the Zipkin_
+collector. Or, having the Scribe_ client point directly at the Zipkin_
+collector. Our tracers can be found in the module ``tracers``.
+
 HTTP Tracing
 ------------
 
+Tryfer supports tracing on client and server sides
 Tryfer natively supports tracing of HTTP requests on both the client and the
 server, and relates these requests by passing a series of HTTP headers along
 with the request.
@@ -44,8 +73,6 @@ Headers
 * ``X-B3-TraceId`` - hex encoded trace id.
 * ``X-B3-SpanId`` - hex encoded span id.
 * ``X-B3-ParentSpanId`` - hex encoded span id of parent span.
-
-See `here <https://github.com/twitter/finagle/blob/master/finagle-http/src/main/scala/com/twitter/finagle/http/Codec.scala#L198>`_ for the complete definition.
 
 Examples
 ~~~~~~~~
@@ -156,3 +183,4 @@ License
 .. _Zipkin: https://github.com/twitter/zipkin
 .. _Twisted: http://twistedmatrix.com/
 .. _Finagle: https://github.com/twitter/finagle/tree/master/finagle-zipkin
+.. _Scribe: https://github.com/facebook/scribe
