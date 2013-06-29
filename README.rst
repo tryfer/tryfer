@@ -37,7 +37,6 @@ collector. Our tracers can be found in the module ``tracers``.
 HTTP Tracing
 ------------
 
-Tryfer supports tracing on client and server sides
 Tryfer natively supports tracing of HTTP requests on both the client and the
 server, and relates these requests by passing a series of HTTP headers along
 with the request.
