@@ -61,8 +61,8 @@ def json_formatter(traces, *json_args, **json_kwargs):
     return json.dumps(json_traces, *json_args, **json_kwargs)
 
 
-def ipv4_to_long(ipv4):
-    return struct.unpack('!L', socket.inet_aton(ipv4))[0]
+def ipv4_to_int(ipv4):
+    return struct.unpack('!i', socket.inet_aton(ipv4))[0]
 
 
 def base64_thrift(thrift_obj):
@@ -102,7 +102,7 @@ def base64_thrift_formatter(trace, annotations):
         host = None
         if annotation.endpoint:
             host = ttypes.Endpoint(
-                ipv4=ipv4_to_long(annotation.endpoint.ipv4),
+                ipv4=ipv4_to_int(annotation.endpoint.ipv4),
                 port=annotation.endpoint.port,
                 service_name=annotation.endpoint.service_name)
 
