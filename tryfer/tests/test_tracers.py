@@ -28,7 +28,6 @@ from twisted.internet.task import Clock
 from twisted.internet.defer import succeed
 
 from twisted.web.http_headers import Headers
-from twisted.web.test.test_webclient import FileConsumer
 
 from tryfer.tracers import get_tracers, set_tracers, push_tracer
 from tryfer.tracers import (
@@ -254,7 +253,6 @@ class RawRESTkinScribeTracerTests(TestCase):
 class RawRESTkinHTTPTracerTests(TestCase):
     def assertBodyEquals(self, bodyProducer, expectedOutput):
         output = StringIO()
-        consumer = FileConsumer(output)
 
         def _check_body(_):
             self.assertEqual(
@@ -262,7 +260,7 @@ class RawRESTkinHTTPTracerTests(TestCase):
                 expectedOutput
             )
 
-        d = bodyProducer.startProducing(consumer)
+        d = bodyProducer.startProducing(output)
         d.addCallback(_check_body)
 
         return d
