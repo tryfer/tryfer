@@ -16,6 +16,7 @@ from twisted.trial.unittest import TestCase
 
 from tryfer import formatters
 
+
 class TestFormatters(TestCase):
     def test_ipv4_to_int(self):
         """ Thrift expects ipv4 address to be a signed 32-bit integer.
